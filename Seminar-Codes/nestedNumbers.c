@@ -6,6 +6,10 @@ typedef enum {
     Integer, String, List, Nil
 } nodeType;
 
+/*
+ * This function merges two string
+ */
+
 char* stringConcat(const char* first, const char* second) {
     char* result = malloc(strlen(first) + strlen(second) + 1);
     strcpy(result, first);
