@@ -6,11 +6,16 @@
  * and map classes as well as the custom Production and Definition
  * classes provided with the assignment.
  */
- 
+
 #include <map>
 #include <fstream>
 #include "definition.h"
 #include "production.h"
+#include "assert.h"
+
+/* This constant represents number of generations */
+const int GEN_NUM = 3;
+
 using namespace std;
 
 /**
@@ -29,14 +34,51 @@ using namespace std;
 
 static void readGrammar(ifstream& infile, map<string, Definition>& grammar)
 {
-  while (true) {
-    string uselessText;
-    getline(infile, uselessText, '{');
-    if (infile.eof()) return;  // true? we encountered EOF before we saw a '{': no more productions!
-    infile.putback('{');
-    Definition def(infile);
-    grammar[def.getNonterminal()] = def;
-  }
+	while (true) {
+		string uselessText;
+		getline(infile, uselessText, '{');
+		if (infile.eof()) return;  // true? we encountered EOF before we saw a '{': no more productions!
+		infile.putback('{');
+		Definition def(infile);
+		grammar[def.getNonterminal()] = def;
+	}
+}
+
+/*
+ *	This method generates one random srting
+ */
+void generateStringRec(string &def, map <string, Definition> &grammar) {
+	
+	assert (grammar.find(def) != grammar.end());
+
+	Definition curDef = grammar.find(def)->second;
+	Production prd = curDef.getRandomProduction();
+
+	vector <string>::iterator itInPhases = prd.begin();
+	
+	while (itInPhases != prd.end()) {
+		string curString = *itInPhases;
+		if (curString.size() > 0) {
+			if (curString[0] == '<') {
+				generateStringRec(curString, grammar);		
+			} else {
+				cout << curString << ' ';
+			}
+		}
+		itInPhases++;
+	}
+}
+
+/*
+ * This method generates strings for rgs application
+ */
+void generateStrings(int numOfGens, map <string, Definition> &grammar) {
+	for (int i = 0; i < numOfGens; i++) {
+		cout << "Version #" << i + 1 << ": --------------------------" << endl;
+		string stString = "<start>";
+		generateStringRec(stString, grammar);
+		cout << endl;
+	}
 }
 
 /**
@@ -54,26 +96,28 @@ static void readGrammar(ifstream& infile, map<string, Definition>& grammar)
  * @param argv the sequence of tokens making up the command, where each
  *             token is represented as a '\0'-terminated C string.
  */
-
 int main(int argc, char *argv[])
 {
-  if (argc == 1) {
-    cerr << "You need to specify the name of a grammar file." << endl;
-    cerr << "Usage: rsg <path to grammar text file>" << endl;
-    return 1; // non-zero return value means something bad happened 
-  }
-  
-  ifstream grammarFile(argv[1]);
-  if (grammarFile.fail()) {
-    cerr << "Failed to open the file named \"" << argv[1] << "\".  Check to ensure the file exists. " << endl;
-    return 2; // each bad thing has its own bad return value
-  }
-  
-  // things are looking good...
-  map<string, Definition> grammar;
-  readGrammar(grammarFile, grammar);
-  cout << "The grammar file called \"" << argv[1] << "\" contains "
-       << grammar.size() << " definitions." << endl;
-  
-  return 0;
+	if (argc == 1) {
+		cerr << "You need to specify the name of a grammar file." << endl;
+		cerr << "Usage: rsg <path to grammar text file>" << endl;
+		return 1; // non-zero return value means something bad happened 
+	}
+
+	ifstream grammarFile(argv[1]);
+	if (grammarFile.fail()) {
+		cerr << "Failed to open the file named \"" << argv[1] << "\".  Check to ensure the file exists. " << endl;
+		return 2; // each bad thing has its own bad return value
+	}
+
+	// things are looking good...
+	map<string, Definition> grammar;
+	readGrammar(grammarFile, grammar);
+	cout << "The grammar file called \"" << argv[1] << "\" contains "
+		<< grammar.size() << " definitions." << endl;
+	
+	
+	generateStrings(GEN_NUM, grammar);
+	
+	return 0;
 }
