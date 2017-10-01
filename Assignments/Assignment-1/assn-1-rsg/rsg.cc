@@ -45,28 +45,36 @@ static void readGrammar(ifstream& infile, map<string, Definition>& grammar)
 }
 
 /*
- *	This method generates one random srting
+ * This method checks if word is nonterminal
+ */
+int isNonTerminal(string &curString) {
+    if (curString.size() <= 0) return 0;
+    if (curString[0] != '<') return 0;
+    if (curString[curString.size() - 1] != '>') return 0;
+    return 1;
+}
+
+/*
+ *	This method generates one random string
  */
 void generateStringRec(string &def, map <string, Definition> &grammar) {
-	
+
 	assert (grammar.find(def) != grammar.end());
 
 	Definition curDef = grammar.find(def)->second;
 	Production prd = curDef.getRandomProduction();
 
 	vector <string>::iterator itInPhases = prd.begin();
-	
+
 	while (itInPhases != prd.end()) {
 		string curString = *itInPhases;
-		if (curString.size() > 0) {
-			if (curString[0] == '<') {
-				generateStringRec(curString, grammar);		
-			} else {
-				cout << curString << ' ';
-			}
-		}
-		itInPhases++;
-	}
+		if (isNonTerminal(curString)) {
+            generateStringRec(curString, grammar);
+        } else {
+            cout << curString << ' ';
+        }
+        itInPhases++;
+    }
 }
 
 /*
@@ -101,7 +109,7 @@ int main(int argc, char *argv[])
 	if (argc == 1) {
 		cerr << "You need to specify the name of a grammar file." << endl;
 		cerr << "Usage: rsg <path to grammar text file>" << endl;
-		return 1; // non-zero return value means something bad happened 
+		return 1; // non-zero return value means something bad happened
 	}
 
 	ifstream grammarFile(argv[1]);
@@ -115,9 +123,9 @@ int main(int argc, char *argv[])
 	readGrammar(grammarFile, grammar);
 	cout << "The grammar file called \"" << argv[1] << "\" contains "
 		<< grammar.size() << " definitions." << endl;
-	
-	
+
+
 	generateStrings(GEN_NUM, grammar);
-	
+
 	return 0;
 }
