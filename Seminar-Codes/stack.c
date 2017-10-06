@@ -26,7 +26,6 @@ void StackDispose(stack* s) {
         for (int i = 0; i < s->loglen; i++) {
             s->freefn((char*)s->elems + i * s->elemSize);
         }
-        printf("yle xo araa\n");
     }
     free(s->elems);
 }
