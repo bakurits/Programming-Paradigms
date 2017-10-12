@@ -38,12 +38,12 @@ struct film {
    */
 
   bool operator==(const film& rhs) const { 
-    return this->title == rhs.title && (this->year == rhs.year); 
+    return (this->title == rhs.title) && (this->year == rhs.year); 
   }
   
   bool operator<(const film& rhs) const { 
-    return this->title < rhs.title || 
-           this->title == rhs.title && this->year < rhs.year; 
+    return (this->title < rhs.title) || 
+           ((this->title == rhs.title) && (this->year < rhs.year)); 
   }
 };
 

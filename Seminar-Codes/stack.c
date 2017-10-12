@@ -6,7 +6,7 @@
 
 void grow(stack* s) {
     s->aloclen *= 2;
-    s->elems = realloc(s->elems, s->aloclen);
+    s->elems = realloc(s->elems, s->aloclen * s->elemSize);
     assert(s->elems != NULL);
 }
 
