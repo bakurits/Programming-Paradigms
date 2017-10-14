@@ -5,7 +5,9 @@ using namespace std;
 #include <fcntl.h>
 #include <unistd.h>
 #include "imdb.h"
-#include <stdlib.h>   
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
 
 #define NUM_OF_ACTORS (*(int*) actorFile)
 #define NUM_OF_FILMS (*(int*) movieFile)
@@ -55,12 +57,42 @@ int comp(const void* keyBases, const void* offset) {
 	return 0;
 }
 
-bool imdb::getCredits(const string &player, vector<film>& films) const {
+void getFilm(char* curFilmPtr, film &curFilm) {
+	curFilm.title = string(curFilmPtr);
+	int curFilmNameLen = strlen(curFilmPtr);
+	curFilm.year = 1900 + *(curFilmPtr + curFilmNameLen + 1);
+}
+
+void getFilmsForActor(char* mvFile, char* curActorPtr, vector<film> &films) {
+	int actorNameLen = strlen(curActorPtr) + 1;
+	char* filmsCountPtr = curActorPtr + actorNameLen + ((actorNameLen) & 1);
+	
+	short filmCount = *((short*)filmsCountPtr);
+	char* filmsStartPtr = (char*) filmsCountPtr + 2;
+	
+	if (((filmsStartPtr - curActorPtr) & 3) != 0) 
+		filmsStartPtr = filmsStartPtr + 2;
+	
+	for (int i = 0; i < filmCount; i++) {
+		film curFilm;
+		int curFilmOffset = *((int*) (filmsStartPtr + i * sizeof(int)));
+		
+		getFilm(mvFile + curFilmOffset, curFilm);
+
+		films.push_back(curFilm);
+	}
+}
+
+bool imdb::getCredits(const string &player, vector<film> &films) const {
 	myStruct savedData = make_pair(actorFile, &player[0]);
 	void* findedActor = bsearch(&savedData, (char*) actorFile + sizeof(int), NUM_OF_ACTORS, sizeof(int), 
 								(int (*)(const void*, const void*)) comp);
 	
-	if (findedActor == NULL)  return false; 
+	if (findedActor == NULL)  return false;
+	
+	char* curActorPtr = (char*)actorFile + (*(int*)findedActor);
+
+	getFilmsForActor((char*) movieFile, curActorPtr, films);
 
 	return true;
 
