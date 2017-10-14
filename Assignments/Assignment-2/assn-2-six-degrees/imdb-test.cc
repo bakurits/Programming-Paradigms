@@ -94,7 +94,9 @@ static void listCostars(const string &player, const vector<film>& credits, const
   for (int i = 0; i < (int) credits.size(); i++) {
     const film& movie = credits[i];
     vector<string> cast;
+    cout << movie.title << endl;
     db.getCast(movie, cast);
+    cout << movie.title << endl;
     for (int j = 0; j < (int) cast.size(); j++) {
       const string& costar = cast[j];
       if (costar != player) costars[costar].insert(movie);

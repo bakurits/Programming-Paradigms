@@ -1,4 +1,5 @@
-#include "gglist.h";
+#include "gglist.h"
+#include <assert.h>
 
 void ListNew(List* l) {
     l->logLen = 0;
@@ -12,16 +13,23 @@ void ListGrow(List* l) {
 }
 
 void ListInsert(List* l, int index, void* elemAdr, int elemSize) {
+    assert(index >= 0);
+
     if (index > l->logLen) index = l->logLen;
     
-    if (l->allocLen == l->logLen) ListGrow(List* l);
+    if (l->allocLen == l->logLen) ListGrow(l);
 
     elem* src = l->elems_array + index;
-    memmove(src + 1, src, sizeof(src) * (l->logLen - index));
+    memmove(src + 1, src, sizeof(elem) * (l->logLen - index));
     src->size = elemSize;
-    src->data = malloc(elemSize)
-    memcpy(src->data, elemadr, elemSize);
-    l->elemSize++;
+    src->data = malloc(elemSize);
+    memcpy(src->data, elemAdr, elemSize);
+    l->logLen++;
+}
+
+void ListRemove(List* l, int index) {
+    assert(index >=0 && index < l->logLen);
+    memmove(l->elems_array + index + 1, l->elems_array + index + 1, (l->logLen - index) * sizeof(elem));
 }
 
 void ListAppend(List* l, void* elemAdr, int elemSize) {
@@ -35,5 +43,7 @@ void ListDispose(List* l) {
     free(l->elems_array);
 }
 
-
-void ListGet
+void ListGet(List* l, int index, void *elemAdr) {
+    assert(index >=0 && index < l->logLen);
+    memcpy(elemAdr, l->elems_array + index, sizeof(elem));
+}

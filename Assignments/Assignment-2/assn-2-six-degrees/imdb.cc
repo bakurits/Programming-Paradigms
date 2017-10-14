@@ -17,6 +17,84 @@ typedef pair <const void*, const void*> myStruct;
 const char *const imdb::kActorFileName = "actordata";
 const char *const imdb::kMovieFileName = "moviedata";
 
+void toLowerCase(char &ch) {
+	if (ch >= 'A' && ch <= 'Z') {
+		ch = ch - 'A' + 'a';
+	}
+}
+
+int fixPtr(int inc, int rem) {
+	rem--;
+	inc += ((rem + 1 - (inc & rem)) & rem);
+	return inc;
+}
+
+void getFilm(char* curFilmPtr, film &curFilm) {
+	curFilm.title = string(curFilmPtr);
+	int curFilmNameLen = strlen(curFilmPtr);
+	curFilm.year = 1900 + *(curFilmPtr + curFilmNameLen + 1);
+}
+
+void getActor(char* curActorPtr, string &curActor) {
+	curActor = string(curActorPtr);
+}
+
+int compForActors(const void* keyBases, const void* offset) {
+	
+	myStruct pi = *(myStruct*) keyBases;
+	const void* stringInFile = (char*)pi.first + *((int*)offset);
+	const void* searchString = pi.second;
+
+	return strcmp((char*)searchString, (char*)stringInFile);
+}
+
+int compForFilms(const void* keyBases, const void* offset) {
+	const void* movieFile = (*(myStruct*)keyBases).first;
+	char* curMoviePtr = (char*)movieFile + (*(int*)offset);
+	film curFilmInBase;
+	curFilmInBase.title = string(curMoviePtr);
+	curFilmInBase.year = 1900 + *(char*)(curMoviePtr + strlen(curMoviePtr) + 1);
+	film curSearchFilm = *((film*)(*(myStruct*)keyBases).second);
+
+	if (curSearchFilm < curFilmInBase) return -1;
+	if (curFilmInBase < curSearchFilm) return 1;
+	return 0;
+}
+
+void getFilmsForActor(char* mvFile, char* curActorPtr, vector<film> &films) {
+	char* itOfFile = curActorPtr + fixPtr(strlen(curActorPtr) + 1, 2);
+	
+	short filmCount = *((short*)itOfFile);
+	itOfFile += 2;
+	itOfFile = curActorPtr + fixPtr(itOfFile - curActorPtr, 4);
+
+	
+	for (int i = 0; i < filmCount; i++) {
+		film curFilm;
+		int curFilmOffset = *((int*) (itOfFile + i * sizeof(int)));
+		
+		getFilm(mvFile + curFilmOffset, curFilm);
+		films.push_back(curFilm);
+	}
+}
+
+void getActorsForFilm(char* actorFile, char* curMoviePtr, vector <string> &players) {
+	char* itOfFile = curMoviePtr;
+	itOfFile += fixPtr(strlen(curMoviePtr) + 2, 2);
+
+	size_t actorCount = *(short*)itOfFile;
+
+	itOfFile += 2;
+	itOfFile = curMoviePtr + fixPtr(itOfFile - curMoviePtr, 4);
+	
+	for (size_t i = 0; i < actorCount; i++) {
+		string player;
+		int curActorOffset = *((int*)(itOfFile + i * sizeof(int)));
+		getActor(actorFile + curActorOffset, player);
+		players.push_back(player);
+	}
+}
+
 
 imdb::imdb(const string& directory)
 {
@@ -33,74 +111,30 @@ bool imdb::good() const
 			(movieInfo.fd == -1) ); 
 }
 
-void toLowerCase(char &ch) {
-	if (ch >= 'A' && ch <= 'Z') {
-		ch = ch - 'A' + 'a';
-	}
-}
-
-int comp(const void* keyBases, const void* offset) {
-	
-	myStruct pi = *(myStruct*) keyBases;
-	const void* stringInFile = (char*)pi.first + *((int*)offset);
-	const void* searchString = pi.second;
-
-	
-	for (int i = 0; ; i++) {
-		char firstsChar = *((char*) searchString + i);
-		char secondsChar = *((char*) stringInFile + i);
-		toLowerCase(firstsChar); toLowerCase(secondsChar);
-		if (firstsChar < secondsChar) return -1;
-		if (firstsChar > secondsChar) return 1;
-		if (firstsChar == 0 && secondsChar == 0) return 0;
-	}
-	return 0;
-}
-
-void getFilm(char* curFilmPtr, film &curFilm) {
-	curFilm.title = string(curFilmPtr);
-	int curFilmNameLen = strlen(curFilmPtr);
-	curFilm.year = 1900 + *(curFilmPtr + curFilmNameLen + 1);
-}
-
-void getFilmsForActor(char* mvFile, char* curActorPtr, vector<film> &films) {
-	int actorNameLen = strlen(curActorPtr) + 1;
-	char* filmsCountPtr = curActorPtr + actorNameLen + ((actorNameLen) & 1);
-	
-	short filmCount = *((short*)filmsCountPtr);
-	char* filmsStartPtr = (char*) filmsCountPtr + 2;
-	
-	if (((filmsStartPtr - curActorPtr) & 3) != 0) 
-		filmsStartPtr = filmsStartPtr + 2;
-	
-	for (int i = 0; i < filmCount; i++) {
-		film curFilm;
-		int curFilmOffset = *((int*) (filmsStartPtr + i * sizeof(int)));
-		
-		getFilm(mvFile + curFilmOffset, curFilm);
-
-		films.push_back(curFilm);
-	}
-}
 
 bool imdb::getCredits(const string &player, vector<film> &films) const {
+	cout << "dasdasd " << NUM_OF_ACTORS << endl;
 	myStruct savedData = make_pair(actorFile, &player[0]);
-	void* findedActor = bsearch(&savedData, (char*) actorFile + sizeof(int), NUM_OF_ACTORS, sizeof(int), 
-								(int (*)(const void*, const void*)) comp);
+	void* findedActor = bsearch(&savedData, (char*) actorFile + sizeof(int), NUM_OF_ACTORS, sizeof(int), compForActors);
 	
 	if (findedActor == NULL)  return false;
 	
 	char* curActorPtr = (char*)actorFile + (*(int*)findedActor);
-
 	getFilmsForActor((char*) movieFile, curActorPtr, films);
 
 	return true;
-
 }
 
 bool imdb::getCast(const film& movie, vector<string>& players) const {
+	myStruct savedData = make_pair(movieFile, &movie);
+	void* findedMovie = bsearch(&savedData, (char*)movieFile + sizeof(int), NUM_OF_FILMS, sizeof(int), compForFilms);
+
+	if (findedMovie == NULL)  return false;
 	
-	return false; 
+	char* curMoviePtr = (char*)movieFile + (*(int*)findedMovie);
+	getActorsForFilm((char*) actorFile, curMoviePtr, players);
+	
+	return true; 
 }
 
 imdb::~imdb()

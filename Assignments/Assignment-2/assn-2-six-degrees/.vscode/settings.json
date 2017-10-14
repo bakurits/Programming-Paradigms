@@ -1,8 +1,12 @@
 {
     "files.associations": {
+        "*.h": "c",
         "iostream": "cpp",
         "*.tcc": "cpp",
         "sstream": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "vector": "cpp",
+        "istream": "cpp",
+        "iomanip": "cpp"
     }
 }

@@ -7,6 +7,35 @@
 
 using namespace std;
 
+/**
+ * Method : compForActors
+ * ----------------------
+ * 
+ */
+int compForActors(const void* keyBases, const void* offset);
+
+/**
+ * Method : toLowerCase
+ * ----------------------
+ * 
+ */
+void toLowerCase(char &ch);
+
+/**
+ * Method : getFilm
+ * ----------------------
+ * 
+ */
+void getFilm(char* curFilmPtr, film &curFilm);
+
+/**
+ * Method : getFilmsForActor
+ * ----------------------
+ * 
+ */
+void getFilmsForActor(char* mvFile, char* curActorPtr, vector<film> &films);
+
+
 class imdb {
   
  public:
