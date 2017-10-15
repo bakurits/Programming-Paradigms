@@ -7,6 +7,9 @@
         "typeinfo": "cpp",
         "vector": "cpp",
         "istream": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "array": "cpp",
+        "iosfwd": "c",
+        "ostream": "cpp"
     }
 }

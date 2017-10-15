@@ -24,18 +24,90 @@ using namespace std;
  *         empty string.
  */
 
-static string promptForActor(const string& prompt, const imdb& db)
+static string promptForActor(const string &prompt, const imdb &db)
 {
 	string response;
-	while (true) {
+	while (true)
+	{
 		cout << prompt << " [or <enter> to quit]: ";
 		getline(cin, response);
-		if (response == "") return "";
+		if (response == "")
+			return "";
 		vector<film> credits;
-		if (db.getCredits(response, credits)) return response;
+		if (db.getCredits(response, credits))
+			return response;
 		cout << "We couldn't find \"" << response << "\" in the movie database. "
-			<< "Please try again." << endl;
+			 << "Please try again." << endl;
 	}
+}
+
+/**
+ * 
+ * 
+ */
+bool addNeighbourActors(path &curPath, set<string> &actors, set<film> &movies,
+						list<path> &Q, string &last, const imdb &db)
+{
+
+	string curActor = curPath.getLastPlayer();
+	vector<film> films;
+	db.getCredits(curActor, films);
+	for (size_t i = 0; i < films.size(); i++)
+	{
+		if (movies.find(films[i]) == movies.end())
+		{
+			movies.insert(films[i]);
+			vector<string> neighActors;
+			db.getCast(films[i], neighActors);
+
+			for (size_t j = 0; j < neighActors.size(); j++)
+			{
+				if (actors.find(neighActors[j]) == actors.end())
+				{
+					actors.insert(neighActors[j]);
+					path newPath = curPath;
+					newPath.addConnection(films[i], neighActors[j]);
+					if (newPath.getLastPlayer() == last)
+					{
+						cout << newPath;
+						return true;
+					}
+					Q.push_back(newPath);
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+/**
+ * 
+ * 
+ */
+void getPlayersPath(string first, string second, const imdb &db)
+{
+	list<path> Q;
+	set<string> usedActors;
+	set<film> usedMovies;
+
+	path firstNode(first);
+	Q.push_front(firstNode);
+
+	while (!Q.empty())
+	{
+		path curPath = Q.front();
+		Q.pop_front();
+		if (curPath.getLength() > 5)
+			break;
+		string lastActor = curPath.getLastPlayer();
+		if (addNeighbourActors(curPath, usedActors, usedMovies, Q, second, db))
+			return;
+	}
+
+	cout << endl
+		 << "No path between those two people could be found." << endl
+		 << endl;
 }
 
 /**
@@ -56,27 +128,31 @@ static string promptForActor(const string& prompt, const imdb& db)
 int main(int argc, const char *argv[])
 {
 	imdb db(determinePathToData(argv[1])); // inlined in imdb-utils.h
-	if (!db.good()) {
+	if (!db.good())
+	{
 		cout << "Failed to properly initialize the imdb database." << endl;
 		cout << "Please check to make sure the source files exist and that you have permission to read them." << endl;
 		return 1;
 	}
 
-	while (true) {
+	while (true)
+	{
 		string source = promptForActor("Actor or actress", db);
-		if (source == "") break;
+		if (source == "")
+			break;
 		string target = promptForActor("Another actor or actress", db);
-		if (target == "") break;
-		if (source == target) {
+		if (target == "")
+			break;
+		if (source == target)
+		{
 			cout << "Good one.  This is only interesting if you specify two different people." << endl;
-		} else {
-			// replace the following line by a call to your generateShortestPath routine... 
-			cout << endl << "No path between those two people could be found." << endl << endl;
+		}
+		else
+		{
+			getPlayersPath(source, target, db);
 		}
 	}
-
 
 	cout << "Thanks for playing!" << endl;
 	return 0;
 }
-
