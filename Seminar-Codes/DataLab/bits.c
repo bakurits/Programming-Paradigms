@@ -151,7 +151,7 @@ int bitAnd(int x, int y)
  */
 int getByte(int x, int n)
 {
-	return (x >> (n << 3)) & 255;
+  return (x >> (n << 3)) & 255;
 }
 /*
  * logicalShift - shift x to the right by n, using a logical shift
@@ -242,7 +242,7 @@ int negate(int x)
  */
 int isPositive(int x)
 {
-	return ((~x + 1) >> 31) & (x >> 31 ^ 1) & 1;
+	return ((!(x >> 31)) & (!!x));
 }
 /*
  * isLessOrEqual - if x <= y  then return 1, else return 0
@@ -253,7 +253,8 @@ int isPositive(int x)
  */
 int isLessOrEqual(int x, int y)
 {
-	return !(isPositive(x + (~y + 1)));
+	
+	return (y + ~x) >> 31 & 1;
 }
 /*
  * ilog2 - return floor(log base 2 of x), where x > 0
