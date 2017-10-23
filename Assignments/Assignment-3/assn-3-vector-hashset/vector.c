@@ -18,6 +18,7 @@ void VectorNew(vector *v, int elemSize, VectorFreeFunction freeFn, int initialAl
     assert(v != NULL);
     assert(initialAllocation >= 0);
     v->aloclen = initialAllocation == 0 ? DEF_VEC_SIZE : initialAllocation;
+    v->loglen = 0;
     v->elemSize = elemSize;
     v->freefn = freeFn;
     v->elems = malloc(v->aloclen * v->elemSize);
@@ -29,7 +30,7 @@ void VectorDispose(vector *v)
     assert(v != NULL);
     for (int i = 0; i < v->loglen; i++) {
         if (v->freefn != NULL)
-            v->freefn((char*)v->elems + i * v->elemSize);
+            v->freefn(VectorNth(v, i));
     }
     free(v->elems);
 }
@@ -43,6 +44,7 @@ int VectorLength(const vector *v)
 void* VectorNth(const vector* v, int position)
 {
     assert(v != NULL);
+    assert(position >= 0 && position < v->loglen);
     return (char*)v->elems + position * v->elemSize;
 }
 
@@ -65,18 +67,17 @@ void VectorInsert(vector* v, const void* elemAddr, int position)
     }
     
     if (v->aloclen == v->loglen)  VectorGrow(v);
-
-    memmove(VectorNth(v, position + 1), VectorNth(v, position), (v->loglen - position) * v->elemSize);
-    memcpy(VectorNth(v, position), elemAddr, v->elemSize);
     v->loglen++;
+    memmove(VectorNth(v, position + 1), VectorNth(v, position), (v->loglen - position - 1) * v->elemSize);
+    memcpy(VectorNth(v, position), elemAddr, v->elemSize);
 }
 
 void VectorAppend(vector* v, const void *elemAddr)
 {
     assert(v != NULL);
     if (v->aloclen == v->loglen)  VectorGrow(v);
-    memcpy(VectorNth(v, v->loglen), elemAddr, v->elemSize);
     v->loglen++;
+    memcpy(VectorNth(v, v->loglen - 1), elemAddr, v->elemSize);
 }
 
 void VectorDelete(vector* v, int position)
@@ -86,7 +87,8 @@ void VectorDelete(vector* v, int position)
     
     if (v->freefn != NULL)  v->freefn(VectorNth(v, position));
 
-    memmove(VectorNth(v, position + 1), VectorNth(v, position), (v->loglen - position) * v->elemSize);
+    if (position < v->loglen - 1)
+        memmove(VectorNth(v, position), VectorNth(v, position + 1), (v->loglen - position - 1) * v->elemSize);
     v->loglen--;
 }
 

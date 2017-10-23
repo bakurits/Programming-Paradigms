@@ -387,6 +387,7 @@ static void MemoryTest()
     VectorInsert(&questionWords, &questionWord, 0);  // why the ampersand? isn't questionWord already a pointer?
   }
   
+  
   fprintf(stdout, "Mapping over the char * vector (ask yourself: why are char **'s passed to PrintString?!!)\n");
   VectorMap(&questionWords, PrintString, stdout);
   fprintf(stdout, "Finally, destroying the char * vector.\n");
@@ -398,7 +399,7 @@ static void MemoryTest()
  * --------------
  * The enrty point into the test application.  The
  * first test is easy, the second one is medium, and
- 8 the final test is hard.
+ * the final test is hard.
  */
 
 int main(int ignored, char **alsoIgnored) 

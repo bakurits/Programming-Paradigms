@@ -153,6 +153,14 @@ void VectorDispose(vector *v);
 int VectorLength(const vector *v);
 
 /**
+ * Function: VectorGrow
+ * --------------------
+ * 
+ */
+
+void VectorGrow(vector* v);
+
+/**
  * Method: VectorNth
  * -----------------
  * Returns a pointer to the element numbered position in the vector.  
@@ -167,15 +175,6 @@ int VectorLength(const vector *v);
  * becomes invalid after any calls which involve insertion into, deletion from or 
  * sorting of the vector, as all of these may rearrange the elements to some extent.
  */
-
-
-/**
- * Function: VectorGrow
- * --------------------
- * 
- */
-
-void VectorGrow(vector* v);
 
 void *VectorNth(const vector *v, int position);
 
