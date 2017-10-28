@@ -2,6 +2,7 @@
     "files.associations": {
         "stdio.h": "c",
         "myclib.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "gglist.h": "c"
     }
 }

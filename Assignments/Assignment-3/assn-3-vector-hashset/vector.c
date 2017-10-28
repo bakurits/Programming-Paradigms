@@ -13,11 +13,13 @@ void VectorGrow(vector* v)
 }
 
 static const int DEF_VEC_SIZE = 4;
-void VectorNew(vector *v, int elemSize, VectorFreeFunction freeFn, int initialAllocation)
+void VectorNew(vector* v, int elemSize, VectorFreeFunction freeFn, int initialAllocation)
 {
     assert(v != NULL);
     assert(initialAllocation >= 0);
-    v->aloclen = initialAllocation == 0 ? DEF_VEC_SIZE : initialAllocation;
+    assert(elemSize > 0);
+    
+    v->aloclen = (initialAllocation == 0) ? DEF_VEC_SIZE : initialAllocation;
     v->loglen = 0;
     v->elemSize = elemSize;
     v->freefn = freeFn;
@@ -59,6 +61,7 @@ void VectorInsert(vector* v, const void* elemAddr, int position)
 {
     assert(v != NULL);
     assert(position >= 0 && position <= v->loglen);
+    assert(elemAddr != NULL);
 
     if (position == v->loglen)
     {
@@ -75,6 +78,7 @@ void VectorInsert(vector* v, const void* elemAddr, int position)
 void VectorAppend(vector* v, const void *elemAddr)
 {
     assert(v != NULL);
+    assert(elemAddr != NULL);
     if (v->aloclen == v->loglen)  VectorGrow(v);
     v->loglen++;
     memcpy(VectorNth(v, v->loglen - 1), elemAddr, v->elemSize);
@@ -115,20 +119,22 @@ int VectorSearch(const vector* v, const void* key, VectorCompareFunction searchF
     assert(v != NULL);
     assert(key != NULL);
     assert(searchFn != NULL);
-    assert(startIndex >= 0 && startIndex < v->loglen);
+    assert(startIndex >= 0 && startIndex <= v->loglen);
+    
+    if (startIndex == v->loglen) return -1;
 
     void* findedElem = NULL;
 
-    if (isSorted) 
+    if (isSorted)
     {
         findedElem = bsearch(key, VectorNth(v, startIndex), 
-                            v->loglen - startIndex - 1, v->elemSize, searchFn);
+                            v->loglen - startIndex, v->elemSize, searchFn);
     }
     else
     {
-        size_t nmemb = v->loglen - startIndex - 1;
+        size_t nmemb = v->loglen - startIndex;
         findedElem = lfind(key, VectorNth(v, startIndex), &nmemb, v->elemSize, searchFn);
     }
-
+    
     return findedElem == NULL ? kNotFound : ((char*)findedElem - (char*)v->elems) / v->elemSize;
 }
