@@ -33,9 +33,10 @@ void VectorNew(vector* v, int elemSize, VectorFreeFunction freeFn, int initialAl
 
 void VectorDispose(vector *v) {
     assert(v != NULL);
-    for (int i = 0; i < v->loglen; i++) {
-        if (v->freefn != NULL)
+    if (v->freefn != NULL) {
+        for (int i = 0; i < v->loglen; i++) {
             v->freefn(VectorNth(v, i));
+        }
     }
     free(v->elems);
 }
@@ -54,6 +55,9 @@ void* VectorNth(const vector* v, int position) {
 void VectorReplace(vector* v, const void* elemAddr, int position) {
     assert(v != NULL);
     assert(position >= 0 && position < v->loglen);
+
+    if (v->freefn != NULL) v->freefn(VectorNth(v, position));
+    
     memcpy(VectorNth(v, position), elemAddr, v->elemSize);
 }
 

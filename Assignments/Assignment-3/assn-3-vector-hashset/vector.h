@@ -155,10 +155,20 @@ int VectorLength(const vector *v);
 /**
  * Function: VectorGrow
  * --------------------
- * 
+ * Increases alocation size 
+ * For more elements
  */
 
 void VectorGrow(vector* v);
+
+/**
+ * Function: VectorDecay
+ * --------------------
+ * Deletes unnecessary members 
+ * From Vector 
+ */
+
+void VectorDecay(vector* v);
 
 /**
  * Method: VectorNth
