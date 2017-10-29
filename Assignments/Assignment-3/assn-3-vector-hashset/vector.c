@@ -5,16 +5,20 @@
 #include <assert.h>
 #include <search.h>
 
-void VectorGrow(vector* v)
-{
-    v->aloclen *= 2;
+void VectorGrow(vector* v) {
+    v->aloclen = v->aloclen << 1;
+    v->elems = realloc(v->elems, v->aloclen * v->elemSize);
+    assert(v->elems != NULL);
+}
+
+void VectorDecay(vector* v) {
+    v->aloclen = v->aloclen >> 1;
     v->elems = realloc(v->elems, v->aloclen * v->elemSize);
     assert(v->elems != NULL);
 }
 
 static const int DEF_VEC_SIZE = 4;
-void VectorNew(vector* v, int elemSize, VectorFreeFunction freeFn, int initialAllocation)
-{
+void VectorNew(vector* v, int elemSize, VectorFreeFunction freeFn, int initialAllocation) {
     assert(v != NULL);
     assert(initialAllocation >= 0);
     assert(elemSize > 0);
@@ -27,8 +31,7 @@ void VectorNew(vector* v, int elemSize, VectorFreeFunction freeFn, int initialAl
     assert(v->elems != NULL);
 }
 
-void VectorDispose(vector *v)
-{
+void VectorDispose(vector *v) {
     assert(v != NULL);
     for (int i = 0; i < v->loglen; i++) {
         if (v->freefn != NULL)
@@ -37,55 +40,49 @@ void VectorDispose(vector *v)
     free(v->elems);
 }
 
-int VectorLength(const vector *v)
-{
+int VectorLength(const vector *v) {
     assert(v != NULL);
     return v->loglen;
 }
 
-void* VectorNth(const vector* v, int position)
-{
+void* VectorNth(const vector* v, int position) {
     assert(v != NULL);
     assert(position >= 0 && position < v->loglen);
     return (char*)v->elems + position * v->elemSize;
 }
 
-void VectorReplace(vector* v, const void* elemAddr, int position)
-{
+void VectorReplace(vector* v, const void* elemAddr, int position) {
     assert(v != NULL);
     assert(position >= 0 && position < v->loglen);
     memcpy(VectorNth(v, position), elemAddr, v->elemSize);
 }
 
-void VectorInsert(vector* v, const void* elemAddr, int position)
-{
+void VectorInsert(vector* v, const void* elemAddr, int position) {
     assert(v != NULL);
     assert(position >= 0 && position <= v->loglen);
     assert(elemAddr != NULL);
 
-    if (position == v->loglen)
-    {
+    if (position == v->loglen) {
         VectorAppend(v, elemAddr);
-        return;
+    } else {
+        if (v->aloclen == v->loglen)  VectorGrow(v);
+        v->loglen++;
+        memmove(VectorNth(v, position + 1), VectorNth(v, position), (v->loglen - position - 1) * v->elemSize);
+        memcpy(VectorNth(v, position), elemAddr, v->elemSize);
     }
-    
-    if (v->aloclen == v->loglen)  VectorGrow(v);
-    v->loglen++;
-    memmove(VectorNth(v, position + 1), VectorNth(v, position), (v->loglen - position - 1) * v->elemSize);
-    memcpy(VectorNth(v, position), elemAddr, v->elemSize);
 }
 
-void VectorAppend(vector* v, const void *elemAddr)
-{
+void VectorAppend(vector* v, const void *elemAddr) {
     assert(v != NULL);
     assert(elemAddr != NULL);
+
     if (v->aloclen == v->loglen)  VectorGrow(v);
+    
     v->loglen++;
     memcpy(VectorNth(v, v->loglen - 1), elemAddr, v->elemSize);
 }
 
-void VectorDelete(vector* v, int position)
-{
+void VectorDelete(vector* v, int position) {
     assert(v != NULL);
     assert(position >= 0 && position < v->loglen);
     
@@ -94,28 +91,27 @@ void VectorDelete(vector* v, int position)
     if (position < v->loglen - 1)
         memmove(VectorNth(v, position), VectorNth(v, position + 1), (v->loglen - position - 1) * v->elemSize);
     v->loglen--;
+    
+    if (v->loglen < v->aloclen / 4 && v->aloclen != DEF_VEC_SIZE)
+        VectorDecay(v); 
 }
 
-void VectorSort(vector* v, VectorCompareFunction compare)
-{
+void VectorSort(vector* v, VectorCompareFunction compare) {
     assert(v != NULL);
     assert(compare != NULL);
     qsort(v->elems, v->loglen, v->elemSize, compare);
 }
 
-void VectorMap(vector* v, VectorMapFunction mapFn, void* auxData)
-{
+void VectorMap(vector* v, VectorMapFunction mapFn, void* auxData) {
     assert(v != NULL);
     assert(mapFn != NULL);
-    for (int i = 0; i < v->loglen; i++) 
-    {
+    for (int i = 0; i < v->loglen; i++) {
         mapFn(VectorNth(v, i), auxData);
     }
 }
 
 static const int kNotFound = -1;
-int VectorSearch(const vector* v, const void* key, VectorCompareFunction searchFn, int startIndex, bool isSorted)
-{ 
+int VectorSearch(const vector* v, const void* key, VectorCompareFunction searchFn, int startIndex, bool isSorted) { 
     assert(v != NULL);
     assert(key != NULL);
     assert(searchFn != NULL);
@@ -124,17 +120,13 @@ int VectorSearch(const vector* v, const void* key, VectorCompareFunction searchF
     if (startIndex == v->loglen) return -1;
 
     void* findedElem = NULL;
+    size_t nmemb = v->loglen - startIndex;
 
-    if (isSorted)
-    {
-        findedElem = bsearch(key, VectorNth(v, startIndex), 
-                            v->loglen - startIndex, v->elemSize, searchFn);
-    }
-    else
-    {
-        size_t nmemb = v->loglen - startIndex;
+    if (isSorted) {
+        findedElem = bsearch(key, VectorNth(v, startIndex), nmemb, v->elemSize, searchFn);
+    } else {
         findedElem = lfind(key, VectorNth(v, startIndex), &nmemb, v->elemSize, searchFn);
     }
     
-    return findedElem == NULL ? kNotFound : ((char*)findedElem - (char*)v->elems) / v->elemSize;
+    return (findedElem == NULL) ? kNotFound : ((char*)findedElem - (char*)v->elems) / v->elemSize;
 }

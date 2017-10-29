@@ -149,7 +149,7 @@ static void TokenizeAndBuildThesaurus(hashset *thesaurus, streamtokenizer *st)
 
 static void ReadThesaurus(hashset *thesaurus, const char *filename)
 {
-  FILE *infile = fopen(filename, "r");
+  FILE *infile = fopen("assn-3-vector-hashset-data/thesaurus.txt", "r");
   if (infile == NULL) {
     fprintf(stderr, "Could not open thesaurus file named \"%s\"\n", filename);
     exit(1);
@@ -226,7 +226,9 @@ int main(int argc, const char *argv[])
   hashset thesaurus;
   HashSetNew(&thesaurus, sizeof(thesaurusEntry), kApproximateWordCount, StringHash, StringCompare, ThesEntryFree);
   const char *thesaurusFileName = (argc == 1) ? 
-    "/usr/class/cs107/assignments/assn-3-vector-hashset-data/thesaurus.txt" : argv[1];
+    "/Documents/Semester-III/Paradigms/Programming-Paradigms/Assignments/Assignment-3/assn-3-vector-hashset/assn-3-vector-hashset-data/thesaurus.txt" : argv[1];
+  
+  printf("%s\n\n\n", thesaurusFileName);
   ReadThesaurus(&thesaurus, thesaurusFileName);
   QueryThesaurus(&thesaurus);
   HashSetDispose(&thesaurus);

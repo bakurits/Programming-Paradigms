@@ -5,8 +5,7 @@
 
 
 void HashSetNew(hashset *h, int elemSize, int numBuckets,
-		HashSetHashFunction hashfn, HashSetCompareFunction comparefn, HashSetFreeFunction freefn)
-{
+		HashSetHashFunction hashfn, HashSetCompareFunction comparefn, HashSetFreeFunction freefn) {
 	assert(h != NULL);
 	
 	assert(elemSize > 0);
@@ -25,40 +24,33 @@ void HashSetNew(hashset *h, int elemSize, int numBuckets,
 	h->elems = malloc(numBuckets * sizeof(vector));
 	assert(h->elems != NULL);
 
-	for (int i = 0; i < numBuckets; i++)
-	{
+	for (int i = 0; i < numBuckets; i++) {
 		VectorNew(h->elems + i, elemSize, freefn, 0);
 	}
 }
 
-void HashSetDispose(hashset *h)
-{
+void HashSetDispose(hashset *h) {
 	assert(h != NULL);
-	for (int i = 0; i < h->numBuckets; i++)
-	{
+	for (int i = 0; i < h->numBuckets; i++) {
 		VectorDispose(h->elems + i);
 	}
 	free(h->elems);
 }
 
-int HashSetCount(const hashset *h)
-{
+int HashSetCount(const hashset *h) {
 	assert(h != NULL);
 	return h->elemCount;
 }
 
-void HashSetMap(hashset *h, HashSetMapFunction mapfn, void* auxData)
-{
+void HashSetMap(hashset *h, HashSetMapFunction mapfn, void* auxData) {
 	assert(h != NULL);
 	assert(mapfn != NULL);
-	for (int i = 0; i < h->numBuckets; i++)
-	{
+	for (int i = 0; i < h->numBuckets; i++) {
 		VectorMap(h->elems + i, mapfn, auxData);
 	}
 }
 
-void HashSetEnter(hashset *h, const void *elemAddr)
-{
+void HashSetEnter(hashset *h, const void *elemAddr) {
 	assert(h != NULL);
 	assert(elemAddr != NULL);
 
@@ -75,8 +67,7 @@ void HashSetEnter(hashset *h, const void *elemAddr)
 	}
 }
 
-void* HashSetLookup(const hashset *h, const void *elemAddr)
-{
+void* HashSetLookup(const hashset *h, const void *elemAddr) {
 	assert(h != NULL);
 	assert(elemAddr != NULL);
 
@@ -90,5 +81,4 @@ void* HashSetLookup(const hashset *h, const void *elemAddr)
 	} else {
 		return VectorNth(h->elems + hashOfElem, findIndex);
 	}
-
 }
