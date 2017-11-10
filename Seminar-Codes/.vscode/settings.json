@@ -1,8 +1,17 @@
 {
     "files.associations": {
+        "*.php": "php",
         "stdio.h": "c",
         "myclib.h": "c",
         "string.h": "c",
-        "gglist.h": "c"
+        "gglist.h": "c",
+        "ssa.h": "c",
+        "vector.h": "c",
+        "stdbool.h": "c",
+        "cstdbool": "c",
+        "c++config.h": "c",
+        "stdlib.h": "c",
+        "assert.h": "c",
+        "multitable.h": "c"
     }
 }

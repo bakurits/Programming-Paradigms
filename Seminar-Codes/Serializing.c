@@ -1,0 +1,3 @@
+int* listSerialize(void* list) {
+    
+}
