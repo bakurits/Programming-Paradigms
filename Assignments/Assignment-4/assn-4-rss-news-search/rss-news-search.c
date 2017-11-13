@@ -9,21 +9,105 @@
 #include "urlconnection.h"
 #include "streamtokenizer.h"
 #include "html-utils.h"
+#include "vector.h"
+#include "hashset.h"
 
-static void Welcome(const char *welcomeTextFileName);
-static void BuildIndices(const char *feedsFileName);
-static void ProcessFeed(const char *remoteDocumentName);
-static void PullAllNewsItems(urlconnection *urlconn);
-static bool GetNextItemTag(streamtokenizer *st);
-static void ProcessSingleNewsItem(streamtokenizer *st);
-static void ExtractElement(streamtokenizer *st, const char *htmlTag, char dataBuffer[], int bufferLength);
-static void ParseArticle(const char *articleTitle, const char *articleDescription, const char *articleURL);
-static void ScanArticle(streamtokenizer *st, const char *articleTitle, const char *unused, const char *articleURL);
+static void Welcome(const char* welcomeTextFileName);
+static void BuildIndices(const char* feedsFileName);
+static void ProcessFeed(const char* remoteDocumentName);
+static void PullAllNewsItems(urlconnection* urlconn);
+static bool GetNextItemTag(streamtokenizer* st);
+static void ProcessSingleNewsItem(streamtokenizer* st);
+static void ExtractElement(streamtokenizer* st, const char* htmlTag, char dataBuffer[], int bufferLength);
+static void ParseArticle(const char* articleTitle, const char* articleDescription, const char* articleURL);
+static void ScanArticle(streamtokenizer* st, const char* articleTitle, const char* unused, const char* articleURL);
 static void QueryIndices();
-static void ProcessResponse(const char *word);
-static bool WordIsWellFormed(const char *word);
+static void ProcessResponse(const char* word);
+static bool WordIsWellFormed(const char* word);
+static void getStopWords(hashset* stopList, const char* feedsFileName);
+static int StringHash(const void* s, int numBuckets);
+static int StringCompare(const void* firstPtr, const void* secondPtr);
+static void StringFree(void* ptr);
 
-static const char *const kTextDelimiters = " \t\n\r\b!@$%^*()_+={[}]|\\'\":;/?.>,<~`";
+static const char* const kTextDelimiters = " \t\n\r\b!@$%^*()_+={[}]|\\'\":;/?.>,<~`";
+
+/**
+ * article_t
+ * -----------
+ * Stores information for every article
+ * It's name, url, and number of occurrences 
+ * Fore every word
+ */
+typedef struct {
+	char* articleName;
+	char* articleURL;
+	int inArticleFreq;
+} article_t;
+
+/**
+ * wordInfo_t
+ * -----------
+ * Stores word itself
+ * And list of articles where
+ * It's mentioned
+ */
+typedef struct {
+	char* str;
+	vector* listOfArticles;
+} wordInfo_t;
+
+
+/** 
+ * StringHash                     
+ * ----------  
+ * This function adapted from Eric Roberts' "The Art and Science of C"
+ * It takes a string and uses it to derive a hash code, which   
+ * is an integer in the range [0, numBuckets).  The hash code is computed  
+ * using a method called "linear congruence."  A similar function using this     
+ * method is described on page 144 of Kernighan and Ritchie.  The choice of                                                     
+ * the value for the kHashMultiplier can have a significant effect on the                            
+ * performance of the algorithm, but not on its correctness.                                                    
+ * This hash function has the additional feature of being case-insensitive,  
+ * hashing "Peter Pawlowski" and "PETER PAWLOWSKI" to the same code.  
+ */  
+
+static const signed long kHashMultiplier = -1664117991L;
+static int StringHash(const void* ptr, int numBuckets)  
+{            
+	const char* s = ptr;
+	int i;
+	unsigned long hashcode = 0;
+
+	for (i = 0; i < strlen(s); i++)  
+		hashcode = hashcode * kHashMultiplier + tolower(s[i]);  
+
+	return hashcode % numBuckets;                                
+}
+
+/** 
+ * StringCompare                     
+ * ----------  
+ * This is compare function 
+ * For strings
+ */  
+
+static int StringCompare(const void* firstPtr, const void* secondPtr)  
+{            
+	return strcasecmp((const char*)firstPtr, (const char*)secondPtr);
+}
+
+/** 
+ * StringFree                     
+ * ----------  
+ * This is free function 
+ * For strings
+ */  
+
+static void StringFree(void* ptr)
+{            
+	char* freePtr = *(char**) ptr;
+	free (freePtr);
+}
 
 /**
  * Function: main
@@ -41,17 +125,59 @@ static const char *const kTextDelimiters = " \t\n\r\b!@$%^*()_+={[}]|\\'\":;/?.>
  * map words to the collection of news articles where that
  * word appears.
  */
-static const char *const kWelcomeTextFile = "data/welcome.txt";
-static const char *const filePrefix = "file://";
-static const char *const kDefaultFeedsFile = "data/test.txt";
+static const char* const kWelcomeTextFile = "data/welcome.txt";
+static const char* const filePrefix = "file://";
+static const char* const kDefaultFeedsFile = "data/test.txt";
+static const char* const kDefaultStopListFile = "data/stop-words.txt";
+static const int NUM_BUCKETS = 1009;
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
+	
 	setbuf(stdout, NULL);
+	
+	hashset stopList;
+	getStopWords(&stopList, kDefaultStopListFile);
+	return 0;
+
 	Welcome(kWelcomeTextFile);
 	BuildIndices((argc == 1) ? kDefaultFeedsFile : argv[1]);
 	QueryIndices();
 	return 0;
+}
+
+/** 
+ * Function: getStopWords
+ * -----------------
+ * 
+ */
+static const char* const kNewLineDelimiters = "\r\n";
+static void getStopWords(hashset* stopList, const char* feedsFileName)
+{
+	HashSetNew(stopList, sizeof(char*), NUM_BUCKETS, StringHash, StringCompare, StringFree);
+	
+	FILE* infile;
+	streamtokenizer st;
+	char buffer[1024];
+
+	infile = fopen(feedsFileName, "r");
+	assert(infile != NULL);
+	int cnt = 0;
+	STNew(&st, infile, kNewLineDelimiters, true);
+	while (STNextToken(&st, buffer, sizeof(buffer)))
+	{
+		char* newWord = strdup((char*) buffer);
+		if (cnt == 664) {
+			int asdasd = 1;
+		}
+		printf("%s\n", newWord);
+		HashSetEnter(stopList, newWord);
+		cnt++;
+	}
+	printf("324\n");
+
+	STDispose(&st); // remember that STDispose doesn't close the file, since STNew doesn't open one..
+	fclose(infile);
 }
 
 /** 
@@ -66,10 +192,9 @@ int main(int argc, char **argv)
  * is a configuration file that travels with the application.
  */
 
-static const char *const kNewLineDelimiters = "\r\n";
-static void Welcome(const char *welcomeTextFileName)
+static void Welcome(const char* welcomeTextFileName)
 {
-	FILE *infile;
+	FILE* infile;
 	streamtokenizer st;
 	char buffer[1024];
 
@@ -103,9 +228,9 @@ static void Welcome(const char *welcomeTextFileName)
  * document and index its content.
  */
 
-static void BuildIndices(const char *feedsFileName)
+static void BuildIndices(const char* feedsFileName)
 {
-	FILE *infile;
+	FILE* infile;
 	streamtokenizer st;
 	char remoteFileName[1024];
 
@@ -130,16 +255,16 @@ static void BuildIndices(const char *feedsFileName)
  * ProcessFeed locates the specified RSS document, from locally
  */
 
-static void ProcessFeedFromFile(char *fileName)
+static void ProcessFeedFromFile(char* fileName)
 {
-	FILE *infile;
+	FILE* infile;
 	streamtokenizer st;
 	char articleDescription[1024];
 	articleDescription[0] = '\0';
-	infile = fopen((const char *)fileName, "r");
+	infile = fopen((const char*)fileName, "r");
 	assert(infile != NULL);
 	STNew(&st, infile, kTextDelimiters, true);
-	ScanArticle(&st, (const char *)fileName, articleDescription, (const char *)fileName);
+	ScanArticle(&st, (const char*)fileName, articleDescription, (const char*)fileName);
 	STDispose(&st); // remember that STDispose doesn't close the file, since STNew doesn't open one..
 	fclose(infile);
 }
@@ -153,12 +278,12 @@ static void ProcessFeedFromFile(char *fileName)
  * for ParseArticle for information about what the different response codes mean.
  */
 
-static void ProcessFeed(const char *remoteDocumentName)
+static void ProcessFeed(const char* remoteDocumentName)
 {
 
 	if (!strncmp(filePrefix, remoteDocumentName, strlen(filePrefix)))
 	{
-		ProcessFeedFromFile((char *)remoteDocumentName + strlen(filePrefix));
+		ProcessFeedFromFile((char*)remoteDocumentName + strlen(filePrefix));
 		return;
 	}
 
@@ -217,7 +342,7 @@ static void ProcessFeed(const char *remoteDocumentName)
  * ProcessSingleNewsItem do process everything up until </item>.
  */
 
-static void PullAllNewsItems(urlconnection *urlconn)
+static void PullAllNewsItems(urlconnection* urlconn)
 {
 	streamtokenizer st;
 	STNew(&st, urlconn->dataStream, kTextDelimiters, false);
@@ -250,8 +375,8 @@ static void PullAllNewsItems(urlconnection *urlconn)
  * throughout the entire code base.)
  */
 
-static const char *const kItemTagPrefix = "<item";
-static bool GetNextItemTag(streamtokenizer *st)
+static const char* const kItemTagPrefix = "<item";
+static bool GetNextItemTag(streamtokenizer* st)
 {
 	char htmlTag[1024];
 	while (GetNextTag(st, htmlTag, sizeof(htmlTag)))
@@ -283,11 +408,11 @@ static bool GetNextItemTag(streamtokenizer *st)
  * are often other tags inside an item, but we ignore them.
  */
 
-static const char *const kItemEndTag = "</item>";
-static const char *const kTitleTagPrefix = "<title";
-static const char *const kDescriptionTagPrefix = "<description";
-static const char *const kLinkTagPrefix = "<link";
-static void ProcessSingleNewsItem(streamtokenizer *st)
+static const char* const kItemEndTag = "</item>";
+static const char* const kTitleTagPrefix = "<title";
+static const char* const kDescriptionTagPrefix = "<description";
+static const char* const kLinkTagPrefix = "<link";
+static void ProcessSingleNewsItem(streamtokenizer* st)
 {
 	char htmlTag[1024];
 	char articleTitle[1024];
@@ -329,7 +454,7 @@ static void ProcessSingleNewsItem(streamtokenizer *st)
  * It would be quite unusual for the title and/or link fields to be empty, but this handles those possibilities too.
  */
 
-static void ExtractElement(streamtokenizer *st, const char *htmlTag, char dataBuffer[], int bufferLength)
+static void ExtractElement(streamtokenizer* st, const char* htmlTag, char dataBuffer[], int bufferLength)
 {
 	assert(htmlTag[strlen(htmlTag) - 1] == '>');
 	if (htmlTag[strlen(htmlTag) - 2] == '/')
@@ -364,7 +489,7 @@ static void ExtractElement(streamtokenizer *st, const char *htmlTag, char dataBu
  * enumeration of all possibilities.
  */
 
-static void ParseArticle(const char *articleTitle, const char *articleDescription, const char *articleURL)
+static void ParseArticle(const char* articleTitle, const char* articleDescription, const char* articleURL)
 {
 	url u;
 	urlconnection urlconn;
@@ -410,7 +535,7 @@ static void ParseArticle(const char *articleTitle, const char *articleDescriptio
  * code that indexes the specified content.
  */
 
-static void ScanArticle(streamtokenizer *st, const char *articleTitle, const char *unused, const char *articleURL)
+static void ScanArticle(streamtokenizer* st, const char* articleTitle, const char* unused, const char* articleURL)
 {
 	int numWords = 0;
 	char word[1024];
@@ -428,6 +553,8 @@ static void ScanArticle(streamtokenizer *st, const char *articleTitle, const cha
 			if (WordIsWellFormed(word))
 			{
 				numWords++;
+				// enter your code here.
+				// add hashset[word] arcticle url;
 				if (strlen(word) > strlen(longestWord))
 					strcpy(longestWord, word);
 			}
@@ -470,10 +597,11 @@ static void QueryIndices()
  * for a list of web documents containing the specified word.
  */
 
-static void ProcessResponse(const char *word)
+static void ProcessResponse(const char* word)
 {
 	if (WordIsWellFormed(word))
 	{
+		// enter your code here.
 		printf("\tWell, we don't have the database mapping words to online news articles yet, but if we DID have\n");
 		printf("\tour hashset of indices, we'd list all of the articles containing \"%s\".\n", word);
 	}
@@ -494,7 +622,7 @@ static void ProcessResponse(const char *word)
  * or the '-' character.  
  */
 
-static bool WordIsWellFormed(const char *word)
+static bool WordIsWellFormed(const char* word)
 {
 	int i;
 	if (strlen(word) == 0)
@@ -504,6 +632,6 @@ static bool WordIsWellFormed(const char *word)
 	for (i = 1; i < strlen(word); i++)
 		if (!isalnum((int)word[i]) && (word[i] != '-'))
 			return false;
-	
+
 	return true;
 }
