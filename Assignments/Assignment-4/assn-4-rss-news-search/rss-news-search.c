@@ -96,19 +96,6 @@ static int StringCompare(const void* firstPtr, const void* secondPtr)
 	return strcasecmp((const char*)firstPtr, (const char*)secondPtr);
 }
 
-/** 
- * StringFree                     
- * ----------  
- * This is free function 
- * For strings
- */  
-
-static void StringFree(void* ptr)
-{            
-	char* freePtr = *(char**) ptr;
-	free (freePtr);
-}
-
 /**
  * Function: main
  * --------------
@@ -135,14 +122,16 @@ int main(int argc, char** argv)
 {
 	
 	setbuf(stdout, NULL);
-	
-	hashset stopList;
-	getStopWords(&stopList, kDefaultStopListFile);
-	return 0;
 
 	Welcome(kWelcomeTextFile);
+
+	hashset stopList;
+	getStopWords(&stopList, kDefaultStopListFile);
+
 	BuildIndices((argc == 1) ? kDefaultFeedsFile : argv[1]);
 	QueryIndices();
+
+	HashSetDispose(stopList);
 	return 0;
 }
 
@@ -154,7 +143,7 @@ int main(int argc, char** argv)
 static const char* const kNewLineDelimiters = "\r\n";
 static void getStopWords(hashset* stopList, const char* feedsFileName)
 {
-	HashSetNew(stopList, sizeof(char*), NUM_BUCKETS, StringHash, StringCompare, StringFree);
+	HashSetNew(stopList, sizeof(char*), NUM_BUCKETS, StringHash, StringCompare, NULL);
 	
 	FILE* infile;
 	streamtokenizer st;
@@ -162,21 +151,15 @@ static void getStopWords(hashset* stopList, const char* feedsFileName)
 
 	infile = fopen(feedsFileName, "r");
 	assert(infile != NULL);
-	int cnt = 0;
 	STNew(&st, infile, kNewLineDelimiters, true);
 	while (STNextToken(&st, buffer, sizeof(buffer)))
 	{
 		char* newWord = strdup((char*) buffer);
-		if (cnt == 664) {
-			int asdasd = 1;
-		}
 		printf("%s\n", newWord);
 		HashSetEnter(stopList, newWord);
-		cnt++;
 	}
-	printf("324\n");
 
-	STDispose(&st); // remember that STDispose doesn't close the file, since STNew doesn't open one..
+	STDispose(&st);
 	fclose(infile);
 }
 
@@ -208,7 +191,7 @@ static void Welcome(const char* welcomeTextFileName)
 	}
 
 	printf("\n");
-	STDispose(&st); // remember that STDispose doesn't close the file, since STNew doesn't open one..
+	STDispose(&st); 
 	fclose(infile);
 }
 
@@ -553,8 +536,6 @@ static void ScanArticle(streamtokenizer* st, const char* articleTitle, const cha
 			if (WordIsWellFormed(word))
 			{
 				numWords++;
-				// enter your code here.
-				// add hashset[word] arcticle url;
 				if (strlen(word) > strlen(longestWord))
 					strcpy(longestWord, word);
 			}
