@@ -21,9 +21,9 @@
  * Fore every word
  */
 typedef struct {
-	char* articleName;
-	char* articleURL;
-	char* articleServer;
+	const char* articleName;
+	const char* articleURL;
+	const char* articleServer;
 	int inArticleFreq;
 } article_t;
 
@@ -63,6 +63,7 @@ static int StringHash(const void* s, int numBuckets);
 static int WordInfoHash(const void* ptr, int numBuckets);
 static int StringCompare(const void* firstPtr, const void* secondPtr);
 static int WordInfoCompare(const void* firstPtr, const void* secondPtr);
+static int articleCompare(const void* firstPtr, const void* secondPtr);
 static void StringFree(void* ptr);
 static void WordInfoFree(void* ptr);
 
@@ -130,6 +131,21 @@ static int WordInfoCompare(const void* firstPtr, const void* secondPtr)
 }
 
 /** 
+ * articleCompare                     
+ * ----------  
+ * This is compare function 
+ * For article_t
+ */  
+static int articleCompare(const void* firstPtr, const void* secondPtr)
+{            
+	article_t* elem1 = (article_t*)firstPtr;
+	article_t* elem2 = (article_t*)firstPtr;
+	if (strcmp(elem1->articleURL, elem2->articleURL) == 0) return 0;
+	if (strcmp(elem1->articleName, elem2->articleName) == 0 && strcmp(elem1->articleServer, elem2->articleServer)) return 0;
+	return strcmp(elem1->articleURL, elem2->articleURL);
+}
+
+/** 
  * StringFree                     
  * ----------  
  * This is free function 
@@ -190,7 +206,7 @@ int main(int argc, char** argv)
 	hashset wordInfo;
 	HashSetNew(&wordInfo, sizeof(wordInfo_t), NUM_BUCKETS, WordInfoHash, WordInfoCompare, WordInfoFree);
 	vector fixedArticles;
-	VectorNew(&fixedArticles, sizeof(article_t), NUM_BUCKETS, NULL, 0);
+	VectorNew(&fixedArticles, sizeof(article_t), NULL, 0);
 
 
 	BuildIndices((argc == 1) ? kDefaultFeedsFile : argv[1], &wordInfo, &fixedArticles, &stopList);
@@ -584,7 +600,7 @@ static void ParseArticle(const char* articleTitle, const char* articleDescriptio
  * code that indexes the specified content.
  */
 
-static void ScanArticle(streamtokenizer* st, const char* articleTitle, const char* arcitcleServer, 
+static void ScanArticle(streamtokenizer* st, const char* articleTitle, const char* articleServer, 
 						const char* articleURL,  hashset* wordInfo, vector* fixedArticles, hashset* stopWords)
 {
 	int numWords = 0;
@@ -592,12 +608,12 @@ static void ScanArticle(streamtokenizer* st, const char* articleTitle, const cha
 	char longestWord[1024] = {'\0'};
 
 	article_t curArticle;
-	curArticle.articleName = articleName;
+	curArticle.articleName = articleTitle;
 	curArticle.articleServer = articleServer;
 	curArticle.articleURL = articleURL;
 
-	if (HashSetLookup(fixedArticles. &curArticle) != NULL) return;
-	HashSetEnter(fixedArticles, &curArticle); 
+	if (VectorSearch(fixedArticles, &curArticle, articleCompare, 0, 0) != -1) return;
+	VectorAppend(fixedArticles, &curArticle); 
 
 	while (STNextToken(st, word, sizeof(word)))
 	{
