@@ -142,6 +142,20 @@ static void StringFree(void* ptr)
 }
 
 /** 
+ * ArticleFree                     
+ * ----------  
+ * This is free function 
+ * For articles
+ */  
+static void ArticleFree(void* ptr)
+{            
+	article_t* freePtr = (article_t*) ptr;
+	free (freePtr->articleURL);
+	free (freePtr->articleName);
+	free (freePtr->articleServer);
+}
+
+/** 
  * WordInfoFreeWo                     
  * ----------  
  * This is free function 
@@ -592,9 +606,9 @@ static void ScanArticle(streamtokenizer* st, const char* articleTitle, const cha
 	char longestWord[1024] = {'\0'};
 
 	article_t curArticle;
-	curArticle.articleName = articleName;
-	curArticle.articleServer = articleServer;
-	curArticle.articleURL = articleURL;
+	curArticle.articleName = strdup(articleName);
+	curArticle.articleServer = strdup(articleServer);
+	curArticle.articleURL = strdup(articleURL);
 
 	if (HashSetLookup(fixedArticles. &curArticle) != NULL) return;
 	HashSetEnter(fixedArticles, &curArticle); 
@@ -695,20 +709,25 @@ static bool WordIsWellFormed(const char* word)
 
 
 /**
- * 
- * 
+ * Function: enterNewWord
+ * -----------------------
+ * This function adds new word in hashset
  * 
  */
 static void enterNewWord(const char* word, article_t curArticle, hashset* wordInfo) {
 	wordInfo_t searchWord;
 	searchWord.str = strdup(word);
 	void* findedPtr = HashSetLookup(wordInfo, &searchWord);
+	wordInfo_t* curWordData = (wordInfo_t*)findedPtr;
 
-	if (findedPtr != NULL) {
-		
-	} else {
-
+	if (findedPtr == NULL) {
+		wordInfo_t newStr;
+		newStr.str = strdup(word);
+		VectorNew(newStr.listOfArticles, sizeof(article_t), ArticleFree, 0);
+		curWordData = newStr.listOfArticles;
 	}
 
+	VectorAppend(curWordData->listOfArticles, &curArticle);
+	
 	free(searchWord.str);
 }
