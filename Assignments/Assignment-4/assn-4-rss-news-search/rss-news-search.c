@@ -35,7 +35,7 @@ typedef struct {
  * It's mentioned
  */
 typedef struct {
-	char* str;
+	const char* str;
 	vector* listOfArticles;
 } wordInfo_t;
 
@@ -49,21 +49,24 @@ static bool GetNextItemTag(streamtokenizer* st);
 static void ProcessSingleNewsItem(streamtokenizer* st, hashset* wordInfo, vector* fixedArticles, hashset* stopWords);
 static void ExtractElement(streamtokenizer* st, const char* htmlTag, char dataBuffer[], int bufferLength);
 static void ParseArticle(const char* articleTitle, const char* articleDescription, const char* articleURL,
-									 hashset* wordInfo, vector* fixedArticles, hashset* stopWords);
+											hashset* wordInfo, vector* fixedArticles, hashset* stopWords);
 static void ScanArticle(streamtokenizer* st, const char* articleTitle, const char* arcitcleServer,
-											 const char* articleURL, hashset* wordInfo, vector* fixedArticles, hashset* stopWords);
-static void QueryIndices();
-static void ProcessResponse(const char* word);
+											const char* articleURL, hashset* wordInfo, vector* fixedArticles, hashset* stopWords);
+static void QueryIndices(hashset* wordInfo, hashset* stopWords);
+static void ProcessResponse(const char* word, hashset* wordInfo, hashset* stopWords);
 static bool WordIsWellFormed(const char* word);
 static void getStopWords(hashset* stopList, const char* feedsFileName);
 
 static void enterNewWord(const char* word, article_t curArticle, hashset* wordInfo);
+static void printArticle(article_t* article);
+
 
 static int StringHash(const void* s, int numBuckets);
 static int WordInfoHash(const void* ptr, int numBuckets);
 static int StringCompare(const void* firstPtr, const void* secondPtr);
 static int WordInfoCompare(const void* firstPtr, const void* secondPtr);
 static int articleCompare(const void* firstPtr, const void* secondPtr);
+static int VectorCountCompare(const void* firstPtr, const void* secondPtr);
 static void StringFree(void* ptr);
 static void WordInfoFree(void* ptr);
 
@@ -132,6 +135,18 @@ static int WordInfoCompare(const void* firstPtr, const void* secondPtr)
 }
 
 /** 
+ * VectorCountCompare                     
+ * ----------  
+ * This is compare function 
+ * For vector to sort it by "inArticleFreq"
+ */
+static int VectorCountCompare(const void* firstPtr, const void* secondPtr) {
+	article_t* elem1 = (article_t*)firstPtr;
+	article_t* elem2 = (article_t*)secondPtr;
+	return (elem1->inArticleFreq < elem2->inArticleFreq);
+}
+
+/** 
  * articleCompare                     
  * ----------  
  * This is compare function 
@@ -140,7 +155,7 @@ static int WordInfoCompare(const void* firstPtr, const void* secondPtr)
 static int articleCompare(const void* firstPtr, const void* secondPtr)
 {            
 	article_t* elem1 = (article_t*)firstPtr;
-	article_t* elem2 = (article_t*)firstPtr;
+	article_t* elem2 = (article_t*)secondPtr;
 	if (strcmp(elem1->articleURL, elem2->articleURL) == 0) return 0;
 	if (strcmp(elem1->articleName, elem2->articleName) == 0 && strcmp(elem1->articleServer, elem2->articleServer)) return 0;
 	return strcmp(elem1->articleURL, elem2->articleURL);
@@ -181,8 +196,9 @@ static void ArticleFree(void* ptr)
 static void WordInfoFree(void* ptr)
 {            
 	wordInfo_t* freePtr = (wordInfo_t*) ptr;
-	free (freePtr->str);
+	free ((void*)freePtr->str);
 	VectorDispose(freePtr->listOfArticles);
+	free((void*)freePtr->listOfArticles);
 }
 
 
@@ -221,13 +237,15 @@ int main(int argc, char** argv)
 	hashset wordInfo;
 	HashSetNew(&wordInfo, sizeof(wordInfo_t), NUM_BUCKETS, WordInfoHash, WordInfoCompare, WordInfoFree);
 	vector fixedArticles;
-	VectorNew(&fixedArticles, sizeof(article_t), NULL, 0);
+	VectorNew(&fixedArticles, sizeof(article_t), ArticleFree, 0);
 
 	BuildIndices((argc == 1) ? kDefaultFeedsFile : argv[1], &wordInfo, &fixedArticles, &stopList);
-	QueryIndices();
+	QueryIndices(&wordInfo, &stopList);
 
 	HashSetDispose(&stopList);
-	return 0;
+	HashSetDispose(&wordInfo);
+	VectorDispose(&fixedArticles);
+	return 0;	
 }
 
 /** 
@@ -664,7 +682,7 @@ static void ScanArticle(streamtokenizer* st, const char* articleTitle, const cha
  * that contain that word.
  */
 
-static void QueryIndices()
+static void QueryIndices(hashset* wordInfo, hashset* stopWords)
 {
 	char response[1024];
 	while (true)
@@ -674,7 +692,7 @@ static void QueryIndices()
 		response[strlen(response) - 1] = '\0';
 		if (strcasecmp(response, "") == 0)
 			break;
-		ProcessResponse(response);
+		ProcessResponse((const char*)&response[0], wordInfo, stopWords);
 	}
 }
 
@@ -684,19 +702,55 @@ static void QueryIndices()
  * Placeholder implementation for what will become the search of a set of indices
  * for a list of web documents containing the specified word.
  */
-
-static void ProcessResponse(const char* word)
+static const int MAXLENGHT = 10;
+static void ProcessResponse(const char* word, hashset* wordInfo, hashset* stopWords)
 {
+	
 	if (WordIsWellFormed(word))
 	{
-		// enter your code here.
-		printf("\tWell, we don't have the database mapping words to online news articles yet, but if we DID have\n");
-		printf("\tour hashset of indices, we'd list all of the articles containing \"%s\".\n", word);
+		wordInfo_t curWord;
+		curWord.str = word;
+		curWord.listOfArticles = NULL;
+		
+		if (HashSetLookup(stopWords, &curWord.str) != NULL) {
+			printf("Too common a word to be taken seriously. Try something more specific.\n");
+			return;
+		}
+		wordInfo_t* findedWord = HashSetLookup(wordInfo, &curWord);
+		if (findedWord == NULL) {
+			printf("None of today's news articles contain the word \"%s\".\n", word);
+			return;
+		}
+		VectorSort(findedWord->listOfArticles, VectorCountCompare);
+		int outCount = VectorLength(findedWord->listOfArticles);
+		if (outCount <= MAXLENGHT) {
+			//printf("Nice! We found %d articles that include the word \"%s\".\n", outCount, word);
+		} else {
+			//printf("We found %d articles with the word \"%s\". [We'll just list %d, though.]", outCount, word, MAXLENGHT);
+			outCount = MAXLENGHT;	
+		}
+
+		for (int i = 0; i < outCount; i++) {
+			printf("% 3d.) ", i + 1);
+			printArticle(VectorNth(findedWord->listOfArticles, i));
+		}
 	}
 	else
 	{
 		printf("\tWe won't be allowing words like \"%s\" into our set of indices.\n", word);
 	}
+}
+
+/**
+ * Function: printArticle
+ * ------------------------------------
+ * Prints articles data
+ */
+static void printArticle(article_t* article) {
+	char* tm = article->inArticleFreq > 1 ? strdup("times") : strdup("time");
+	printf("\"%s\" [search term occurs %d %s]\n", article->articleName, article->inArticleFreq, tm);
+	printf("      \"%s\"\n", article->articleURL);
+	free(tm);
 }
 
 /**
@@ -746,7 +800,7 @@ static void enterNewWord(const char* word, article_t curArticle, hashset* wordIn
 		newStr.listOfArticles = malloc(sizeof(vector));
 		assert(newStr.listOfArticles != NULL);
 
-		VectorNew(newStr.listOfArticles, sizeof(article_t), ArticleFree, 0);
+		VectorNew(newStr.listOfArticles, sizeof(article_t), NULL, 0);
 		VectorAppend(newStr.listOfArticles, &curArticle);
 		HashSetEnter(wordInfo, &newStr);
 	}
@@ -764,6 +818,5 @@ static void enterNewWord(const char* word, article_t curArticle, hashset* wordIn
 	article_t* findedArticlePtr = VectorNth(curWordData->listOfArticles, findedArticleInd);
 
 	findedArticlePtr->inArticleFreq++;
-	printf ("%s %d\n", word, findedArticlePtr->inArticleFreq);
-	free(searchWord.str);
+	free((void*)searchWord.str);
 }
