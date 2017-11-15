@@ -113,7 +113,7 @@ static int WordInfoHash(const void* ptr, int numBuckets) {
 
 /** 
  * StringCompare                     
- * ----------  
+ * ------------------
  * This is compare function 
  * For strings
  */  
@@ -124,7 +124,7 @@ static int StringCompare(const void* firstPtr, const void* secondPtr)
 
 /** 
  * WordInfoCompare                     
- * ----------  
+ * ---------------------
  * This is compare function 
  * For wordInfo_t
  * It's simple wrapper on StringCompare
@@ -136,7 +136,7 @@ static int WordInfoCompare(const void* firstPtr, const void* secondPtr)
 
 /** 
  * VectorCountCompare                     
- * ----------  
+ * ----------------------
  * This is compare function 
  * For vector to sort it by "inArticleFreq"
  */
@@ -148,7 +148,7 @@ static int VectorCountCompare(const void* firstPtr, const void* secondPtr) {
 
 /** 
  * articleCompare                     
- * ----------  
+ * -------------------
  * This is compare function 
  * For article_t
  */  
@@ -157,13 +157,13 @@ static int articleCompare(const void* firstPtr, const void* secondPtr)
 	article_t* elem1 = (article_t*)firstPtr;
 	article_t* elem2 = (article_t*)secondPtr;
 	if (strcmp(elem1->articleURL, elem2->articleURL) == 0) return 0;
-	if (strcmp(elem1->articleName, elem2->articleName) == 0 && strcmp(elem1->articleServer, elem2->articleServer)) return 0;
+	if (strcmp(elem1->articleName, elem2->articleName) == 0 && strcmp(elem1->articleServer, elem2->articleServer) == 0) return 0;
 	return strcmp(elem1->articleURL, elem2->articleURL);
 }
 
 /** 
  * StringFree                     
- * ----------  
+ * ---------------------
  * This is free function 
  * For strings
  */  
@@ -175,7 +175,7 @@ static void StringFree(void* ptr)
 
 /** 
  * ArticleFree                     
- * ----------  
+ * ---------------------
  * This is free function 
  * For articles
  */  
@@ -188,7 +188,7 @@ static void ArticleFree(void* ptr)
 }
 
 /** 
- * WordInfoFreeWo                     
+ * WordInfoFree                 
  * ----------  
  * This is free function 
  * For Wordinfo
@@ -251,7 +251,8 @@ int main(int argc, char** argv)
 /** 
  * Function: getStopWords
  * -----------------
- * 
+ * This function reads 
+ * stopwords from file
  */
 static const char* const kNewLineDelimiters = "\r\n";
 static void getStopWords(hashset* stopList, const char* feedsFileName)
@@ -713,23 +714,16 @@ static void ProcessResponse(const char* word, hashset* wordInfo, hashset* stopWo
 		curWord.listOfArticles = NULL;
 		
 		if (HashSetLookup(stopWords, &curWord.str) != NULL) {
-			printf("Too common a word to be taken seriously. Try something more specific.\n");
+			printf("      Too common a word to be taken seriously. Try something more specific.\n");
 			return;
 		}
 		wordInfo_t* findedWord = HashSetLookup(wordInfo, &curWord);
 		if (findedWord == NULL) {
-			printf("None of today's news articles contain the word \"%s\".\n", word);
+			printf("      None of today's news articles contain the word \"%s\".\n", word);
 			return;
 		}
 		VectorSort(findedWord->listOfArticles, VectorCountCompare);
 		int outCount = VectorLength(findedWord->listOfArticles);
-		if (outCount <= MAXLENGHT) {
-			//printf("Nice! We found %d articles that include the word \"%s\".\n", outCount, word);
-		} else {
-			//printf("We found %d articles with the word \"%s\". [We'll just list %d, though.]", outCount, word, MAXLENGHT);
-			outCount = MAXLENGHT;	
-		}
-
 		for (int i = 0; i < outCount; i++) {
 			printf("% 3d.) ", i + 1);
 			printArticle(VectorNth(findedWord->listOfArticles, i));
