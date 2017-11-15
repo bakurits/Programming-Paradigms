@@ -87,7 +87,7 @@ static const char* const kTextDelimiters = " \t\n\r\b!@$%^*()_+={[}]|\\'\":;/?.>
 static const signed long kHashMultiplier = -1664117991L;
 static int StringHash(const void* ptr, int numBuckets)  
 {            
-	const char* s = ptr;
+	const char* s = *((const char**)ptr);
 	int i;
 	unsigned long hashcode = 0;
 
@@ -104,7 +104,8 @@ static int StringHash(const void* ptr, int numBuckets)
  * It's simple wrapper on StringHash
  */  
 static int WordInfoHash(const void* ptr, int numBuckets) {
-	return StringHash(((const wordInfo_t*)ptr)->str, numBuckets);
+	const void* newPtr = ((const wordInfo_t*)ptr)->str;
+	return StringHash(&newPtr, numBuckets);
 }
 
 /** 
@@ -114,8 +115,8 @@ static int WordInfoHash(const void* ptr, int numBuckets) {
  * For strings
  */  
 static int StringCompare(const void* firstPtr, const void* secondPtr)  
-{            
-	return strcasecmp((const char*)firstPtr, (const char*)secondPtr);
+{
+	return strcasecmp(*((const char**)firstPtr), *((const char**)secondPtr));
 }
 
 /** 
@@ -127,7 +128,7 @@ static int StringCompare(const void* firstPtr, const void* secondPtr)
  */  
 static int WordInfoCompare(const void* firstPtr, const void* secondPtr)
 {            
-	return StringCompare(((const wordInfo_t*)firstPtr)->str, ((const wordInfo_t*)secondPtr)->str);
+	return strcasecmp(((const wordInfo_t*)firstPtr)->str, ((const wordInfo_t*)secondPtr)->str);
 }
 
 /** 
@@ -153,7 +154,7 @@ static int articleCompare(const void* firstPtr, const void* secondPtr)
  */  
 static void StringFree(void* ptr)
 {            
-	char* freePtr = *(char**) ptr;
+	char* freePtr = *((char**) ptr);
 	free (freePtr);
 }
 
@@ -166,9 +167,9 @@ static void StringFree(void* ptr)
 static void ArticleFree(void* ptr)
 {            
 	article_t* freePtr = (article_t*) ptr;
-	free (freePtr->articleURL);
-	free (freePtr->articleName);
-	free (freePtr->articleServer);
+	free ((void*)freePtr->articleURL);
+	free ((void*)freePtr->articleName);
+	free ((void*)freePtr->articleServer);
 }
 
 /** 
@@ -222,7 +223,6 @@ int main(int argc, char** argv)
 	vector fixedArticles;
 	VectorNew(&fixedArticles, sizeof(article_t), NULL, 0);
 
-
 	BuildIndices((argc == 1) ? kDefaultFeedsFile : argv[1], &wordInfo, &fixedArticles, &stopList);
 	QueryIndices();
 
@@ -250,7 +250,6 @@ static void getStopWords(hashset* stopList, const char* feedsFileName)
 	while (STNextToken(&st, buffer, sizeof(buffer)))
 	{
 		char* newWord = strdup((char*) buffer);
-		printf("%s\n", newWord);
 		HashSetEnter(stopList, &newWord);
 	}
 
@@ -622,15 +621,10 @@ static void ScanArticle(streamtokenizer* st, const char* articleTitle, const cha
 	char longestWord[1024] = {'\0'};
 
 	article_t curArticle;
-<<<<<<< HEAD
-	curArticle.articleName = strdup(articleName);
+	curArticle.articleName = strdup(articleTitle);
 	curArticle.articleServer = strdup(articleServer);
 	curArticle.articleURL = strdup(articleURL);
-=======
-	curArticle.articleName = articleTitle;
-	curArticle.articleServer = articleServer;
-	curArticle.articleURL = articleURL;
->>>>>>> 416515370f6e9106812990254a4ee8aacaaee0be
+	curArticle.inArticleFreq = 0;
 
 	if (VectorSearch(fixedArticles, &curArticle, articleCompare, 0, 0) != -1) return;
 	VectorAppend(fixedArticles, &curArticle); 
@@ -644,9 +638,10 @@ static void ScanArticle(streamtokenizer* st, const char* articleTitle, const cha
 		else
 		{
 			RemoveEscapeCharacters(word);
-			if (WordIsWellFormed(word) && HashSetLookup(stopWords, &word) == NULL)
+			char* wordPtr = &word[0];
+			if (WordIsWellFormed(word) && HashSetLookup(stopWords, &wordPtr) == NULL)
 			{
-				enterNewWord(word, curArticle, wordInfo);
+				enterNewWord(wordPtr, curArticle, wordInfo);
 				numWords++;
 				if (strlen(word) > strlen(longestWord))
 					strcpy(longestWord, word);
@@ -738,18 +733,37 @@ static bool WordIsWellFormed(const char* word)
  */
 static void enterNewWord(const char* word, article_t curArticle, hashset* wordInfo) {
 	wordInfo_t searchWord;
+	
 	searchWord.str = strdup(word);
+	searchWord.listOfArticles = NULL;
 	void* findedPtr = HashSetLookup(wordInfo, &searchWord);
 	wordInfo_t* curWordData = (wordInfo_t*)findedPtr;
-
+	
 	if (findedPtr == NULL) {
 		wordInfo_t newStr;
+
 		newStr.str = strdup(word);
+		newStr.listOfArticles = malloc(sizeof(vector));
+		assert(newStr.listOfArticles != NULL);
+
 		VectorNew(newStr.listOfArticles, sizeof(article_t), ArticleFree, 0);
-		curWordData = newStr.listOfArticles;
+		VectorAppend(newStr.listOfArticles, &curArticle);
+		HashSetEnter(wordInfo, &newStr);
+	}
+	
+
+	findedPtr = HashSetLookup(wordInfo, &searchWord);
+	curWordData = (wordInfo_t*)findedPtr;
+
+	int findedArticleInd = VectorSearch(curWordData->listOfArticles, &curArticle, articleCompare, 0, 0);
+	if (findedArticleInd == -1) {
+		VectorAppend(curWordData->listOfArticles, &curArticle);
 	}
 
-	VectorAppend(curWordData->listOfArticles, &curArticle);
-	
+	findedArticleInd = VectorSearch(curWordData->listOfArticles, &curArticle, articleCompare, 0, 0);
+	article_t* findedArticlePtr = VectorNth(curWordData->listOfArticles, findedArticleInd);
+
+	findedArticlePtr->inArticleFreq++;
+	printf ("%s %d\n", word, findedArticlePtr->inArticleFreq);
 	free(searchWord.str);
 }
