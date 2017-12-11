@@ -48,7 +48,7 @@ static void TestBank(int testRunNumber, unsigned int initSeed,
 static int64_t GetTimeInMicrosecs(void);
 static void PrintUsageAndExit(char* progname);
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 	int opt;
 	char nullString[1] = {0};
@@ -336,7 +336,7 @@ static void* Worker(void* threadarg)
 {
 	int workerNum = *(int*)threadarg;
 	int numBalanceErrors = 0;
-	int noexit = 0ო;
+	int noexit = 0;
 
 	if (workerNum < 0)
 	{
@@ -345,7 +345,7 @@ static void* Worker(void* threadarg)
 	}
 
 	DPRINTF('w', ("Worker(%d) starting\n", workerNum));
-
+	
 	while (1)
 	{
 		Action action;

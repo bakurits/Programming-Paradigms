@@ -72,10 +72,12 @@ int Report_Transfer(Bank *bank, int workerNum, AccountNumber accountNum,
 					AccountAmount amount)
 {
 	// Compute the absolute amount of the transfer; withdrawals come in as negative numbers.
+	pthread_mutex_lock(bank->lock);
 	AccountAmount amountAbs = (amount < 0) ? -amount : amount;
 	Y;
 	if (amountAbs < reportingAmount)
 	{
+		pthread_mutex_unlock(bank->lock);
 		return 0; // Too small to report.
 	}
 
@@ -86,6 +88,7 @@ int Report_Transfer(Bank *bank, int workerNum, AccountNumber accountNum,
 	if (r >= MAX_NUM_REPORTS)
 	{
 		// We've run out of report storage for the bank
+		pthread_mutex_unlock(bank->lock);
 		return 0;
 	}
 
@@ -93,6 +96,7 @@ int Report_Transfer(Bank *bank, int workerNum, AccountNumber accountNum,
 	{
 		// Current report is full, mark it as overflowed and return.
 		rpt->dailyData[r].hasOverflowed = 1;
+		pthread_mutex_unlock(bank->lock);
 		return 0;
 	}
 	// Add the record to the end of the log of records.
@@ -104,7 +108,7 @@ int Report_Transfer(Bank *bank, int workerNum, AccountNumber accountNum,
 	Y;
 	rpt->dailyData[r].numLogEntries = ent + 1;
 	Y;
-
+	pthread_mutex_unlock(bank->lock);
 	return 0;
 }
 

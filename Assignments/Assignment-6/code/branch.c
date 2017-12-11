@@ -33,7 +33,7 @@ int Branch_Init(Bank *bank, int numBranches, int numAccounts,
 		branch->branchID = i;
 		branch->balance = 0;
 		branch->numberAccounts = accountsPerBranch;
-		branch->accounts = (Account *)malloc(accountsPerBranch * sizeof(Account));
+		branch->accounts = (Account*)malloc(accountsPerBranch * sizeof(Account));
 		if (branch->accounts == NULL)
 		{
 			return -1;
@@ -44,7 +44,11 @@ int Branch_Init(Bank *bank, int numBranches, int numAccounts,
 			Account_Init(bank, &branch->accounts[a], a, i, initialAmount);
 			branch->balance += branch->accounts[a].balance;
 		}
+		branch->lock = malloc(sizeof(pthread_mutex_t));
+		pthread_mutex_init(branch->lock, NULL);
 	}
+
+	
 
 	return 0;
 }

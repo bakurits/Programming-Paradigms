@@ -67,8 +67,7 @@ void Action_Init(int configNumBranches, int configNumAccounts, int numCommands,
 /*
  * get a random integer based on the worker number
  */
-static int
-GetRandom(int workerNum, int isBellDistribution, unsigned int maxValue)
+static int GetRandom(int workerNum, int isBellDistribution, unsigned int maxValue)
 {
 	int ns = workerState[workerNum].nextSeed % MAX_WORKERS;
 	int ws = workerState[workerNum].seedList[ns];

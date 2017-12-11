@@ -18,7 +18,7 @@ Bank* Bank_Init(int numBranches, int numAccounts, AccountAmount initalAmount,
 		  int numWorkers)
 {
 
-	Bank *bank = malloc(sizeof(Bank));
+	Bank* bank = malloc(sizeof(Bank));
 
 	if (bank == NULL)
 	{
@@ -27,7 +27,8 @@ Bank* Bank_Init(int numBranches, int numAccounts, AccountAmount initalAmount,
 
 	Branch_Init(bank, numBranches, numAccounts, initalAmount);
 	Report_Init(bank, reportingAmount, numWorkers);
-
+	bank->lock = malloc(sizeof(pthread_mutex_t));
+	pthread_mutex_init(bank->lock, NULL);
 	return bank;
 }
 

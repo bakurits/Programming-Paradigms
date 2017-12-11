@@ -2,6 +2,7 @@
 #define _ACCOUNT_H
 
 #include <stdint.h>
+#include <pthread.h>
 
 typedef uint64_t AccountNumber;
 typedef int64_t AccountAmount;
@@ -10,7 +11,10 @@ typedef struct Account
 {
 	AccountNumber accountNumber;
 	AccountAmount balance;
+	pthread_mutex_t* lock;
 } Account;
+
+#include "branch.h"
 
 Account* Account_LookupByNumber(struct Bank* bank, AccountNumber accountNum);
 
@@ -19,6 +23,8 @@ void Account_Adjust(struct Bank* bank, Account* account,
 					int updateBranch);
 
 AccountAmount Account_Balance(Account* account);
+
+BranchID AccountNum_GetBranchID(AccountNumber accountNum);
 
 AccountNumber Account_MakeAccountNum(int branch, int subaccount);
 

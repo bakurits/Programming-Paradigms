@@ -9,7 +9,6 @@
 #include "error.h"
 #include "debug.h"
 
-#include "branch.h"
 #include "report.h"
 
 /*
@@ -30,6 +29,8 @@ void Account_Init(Bank* bank, Account* account, int id, int branch,
 			account->balance = -1;
 		}
 	}
+	account->lock = malloc(sizeof(pthread_mutex_t));
+	pthread_mutex_init(account->lock, NULL);
 }
 
 /*
