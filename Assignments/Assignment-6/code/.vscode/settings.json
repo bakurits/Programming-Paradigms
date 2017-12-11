@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "getopt.h": "c",
+        "time.h": "c",
+        "types.h": "c",
+        "pthread.h": "c",
+        "inttypes.h": "c"
+    }
+}
