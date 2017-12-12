@@ -4,6 +4,8 @@
         "time.h": "c",
         "types.h": "c",
         "pthread.h": "c",
-        "inttypes.h": "c"
+        "inttypes.h": "c",
+        "debug.h": "c",
+        "branch.h": "c"
     }
 }

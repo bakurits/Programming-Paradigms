@@ -42,6 +42,7 @@ int Report_Init(Bank *bank, AccountAmount reportAmount, int maxNumWorkers)
 	// Allocate and fill in the Report structure of the bank.
 
 	bank->report = (Report *)malloc(sizeof(Report));
+	
 	if (bank->report == NULL)
 	{
 		return -1;

@@ -14,11 +14,12 @@
 /*
  * allocate and initialize each branch.
  */
-int Branch_Init(Bank *bank, int numBranches, int numAccounts,
+int Branch_Init(Bank* bank, int numBranches, int numAccounts,
 				AccountAmount initialAmount)
 {
 	bank->numberBranches = numBranches;
 	bank->branches = malloc(numBranches * sizeof(Branch));
+	
 	if (bank->branches == NULL)
 	{
 		return -1;
@@ -28,12 +29,13 @@ int Branch_Init(Bank *bank, int numBranches, int numAccounts,
 
 	for (int i = 0; i < numBranches; i++)
 	{
-		Branch *branch = &bank->branches[i];
+		Branch* branch = &bank->branches[i];
 
 		branch->branchID = i;
 		branch->balance = 0;
 		branch->numberAccounts = accountsPerBranch;
 		branch->accounts = (Account*)malloc(accountsPerBranch * sizeof(Account));
+		
 		if (branch->accounts == NULL)
 		{
 			return -1;
@@ -48,15 +50,21 @@ int Branch_Init(Bank *bank, int numBranches, int numAccounts,
 		pthread_mutex_init(branch->lock, NULL);
 	}
 
-	
-
 	return 0;
+}
+
+void Branch_Dispoce(Branch* branch) {
+	for (int i = 0; i < branch->numberAccounts; i++) {
+		Account_Dispoce(&branch->accounts[i]);
+	}
+	free(branch->accounts);
+	free(branch->lock);
 }
 
 /*
  * update the balance of a branch.
  */
-int Branch_UpdateBalance(Bank *bank, BranchID branchID, AccountAmount change)
+int Branch_UpdateBalance(Bank* bank, BranchID branchID, AccountAmount change)
 {
 	assert(bank->branches);
 	Y;
@@ -75,7 +83,7 @@ int Branch_UpdateBalance(Bank *bank, BranchID branchID, AccountAmount change)
 /*
  * get the balance of the branch
  */
-int Branch_Balance(Bank *bank, BranchID branchID, AccountAmount *balance)
+int Branch_Balance(Bank* bank, BranchID branchID, AccountAmount* balance)
 {
 
 	assert(bank->branches);
@@ -100,7 +108,7 @@ int Branch_Balance(Bank *bank, BranchID branchID, AccountAmount *balance)
  * its balance equals the sum of balances of all accounts inside
  * the branch.
  */
-int Branch_Validate(Bank *bank, BranchID branchID)
+int Branch_Validate(Bank* bank, BranchID branchID)
 {
 	assert(bank->branches);
 
@@ -131,7 +139,7 @@ int Branch_Validate(Bank *bank, BranchID branchID)
 /*
  * Compare all data inside two branches to see if they are exactly the same.
  */
-int Branch_Compare(Branch *branch1, Branch *branch2)
+int Branch_Compare(Branch* branch1, Branch* branch2)
 {
 	int err = 0;
 
@@ -161,7 +169,7 @@ int Branch_Compare(Branch *branch1, Branch *branch2)
 	{
 
 		assert(branch1->accounts[i].accountNumber ==
-			   branch2->accounts[i].accountNumber);
+				branch2->accounts[i].accountNumber);
 
 		if (branch1->accounts[i].balance != branch2->accounts[i].balance)
 		{

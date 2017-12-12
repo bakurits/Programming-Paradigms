@@ -9,6 +9,7 @@
 #include "branch.h"
 #include "account.h"
 #include "report.h"
+#include "debug.h"
 
 /*
  * allocate the bank structure and initialize the branches.
@@ -17,7 +18,6 @@ Bank* Bank_Init(int numBranches, int numAccounts, AccountAmount initalAmount,
 		  AccountAmount reportingAmount,
 		  int numWorkers)
 {
-
 	Bank* bank = malloc(sizeof(Bank));
 
 	if (bank == NULL)
@@ -42,6 +42,21 @@ Bank* Bank_Init(int numBranches, int numAccounts, AccountAmount initalAmount,
 	bank->leftWorker = bank->allWorkers = numWorkers;
 	
 	return bank;
+}
+
+void Bank_Dispoce(Bank* bank) {
+	for (int i = 0; i < bank->allWorkers; i++) {
+		free(bank->workerLocks[i]);
+	}
+	for (unsigned int i = 0; i < bank->numberBranches; i++) {
+		Branch_Dispoce(&bank->branches[i]);
+	}
+	free(bank->report);
+	free(bank->branches);
+	free(bank->workerLocks);
+	free(bank->lock);
+	free(bank->leftWorkerCheck);
+	free(bank);
 }
 
 /*
@@ -125,3 +140,4 @@ int Bank_Compare(Bank* bank1, Bank* bank2)
 
 	return err;
 }
+

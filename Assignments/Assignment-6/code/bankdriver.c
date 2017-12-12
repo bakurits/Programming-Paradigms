@@ -51,6 +51,7 @@ static void PrintUsageAndExit(char* progname);
 
 int main(int argc, char* argv[])
 {
+	
 	int opt;
 	char nullString[1] = {0};
 	char* debugFlagArgs = nullString;
@@ -131,8 +132,10 @@ int main(int argc, char* argv[])
 	{
 		int err = MultipleWorkers(numWorkers);
 		
-		if (err < 0)
+		if (err < 0) {
+			Bank_Dispoce(bank);
 			exit(-1);
+		}
 	}
 	else
 	{
@@ -147,9 +150,9 @@ int main(int argc, char* argv[])
 		   totalTime / 1000000.0);
 
 	TestBank(testRunNum, randSeed, totalTime);
-
+	Bank_Dispoce(bank);
+	
 	pthread_exit(NULL);
-
 	exit(EXIT_SUCCESS);
 	return 0;
 }
@@ -299,7 +302,6 @@ static int MultipleWorkers(int numWorkers)
 	struct
 	{
 		pthread_t thread;
-		sem_t* lock;
 		int id;
 	} workers[MAX_WORKERS];
 
@@ -313,8 +315,6 @@ static int MultipleWorkers(int numWorkers)
 	for (int w = 0; w < numWorkers; w++)
 	{
 		workers[w].id = w;
-		workers[w].lock = malloc(sizeof(sem_t));
-		sem_init(workers[w].lock, 0, 0);
 		rc = pthread_create(&workers[w].thread, &attr,
 							Worker, (void *)&(workers[w].id));
 		if (rc)
@@ -404,7 +404,10 @@ static void* Worker(void* threadarg)
 
 			break;
 		case ACTION_BRANCH_BALANCE:
-			err = Branch_Balance(bank, action.u.branchArg.branchID, &balance);
+			pthread_mutex_lock(bank->branches[action.u.branchArg.branchID].lock);
+				err = Branch_Balance(bank, action.u.branchArg.branchID, &balance);
+			pthread_mutex_unlock(bank->branches[action.u.branchArg.branchID].lock);
+			
 			DPRINTF('b', ("Branch %" PRIu64 " balance is %" PRId64 "\n",
 						  action.u.branchArg.branchID, balance));
 			break;
@@ -486,6 +489,7 @@ static void TestBank(int testRunNumber, unsigned int initSeed, uint64_t totalTim
 			   testRunNumber,
 			   (double)totalTime / (double)(endTime - startTime));
 	}
+	Bank_Dispoce(bankmulti);
 }
 
 /*

@@ -108,3 +108,7 @@ int Account_IsSameBranch(AccountNumber accountNum1, AccountNumber accountNum2)
 	return (AccountNum_GetBranchID(accountNum1) ==
 			AccountNum_GetBranchID(accountNum2));
 }
+
+void Account_Dispoce(Account* account) {
+	free(account->lock);
+}

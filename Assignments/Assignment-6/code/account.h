@@ -33,4 +33,6 @@ int Account_IsSameBranch(AccountNumber accountNum1, AccountNumber accountNum2);
 void Account_Init(Bank* bank, Account* account, int id, int branch,
 				  AccountAmount initialAmount);
 
+void Account_Dispoce(Account* account);
+
 #endif /* _ACCOUNT_H */

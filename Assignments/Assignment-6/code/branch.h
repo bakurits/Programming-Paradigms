@@ -26,5 +26,6 @@ int Branch_Init(struct Bank* bank, int numBranches, int numAccounts,
 
 int Branch_Validate(struct Bank* bank, BranchID branchID);
 int Branch_Compare(Branch* branch1, Branch* branch2);
+void Branch_Dispoce(Branch* branch);
 
 #endif /* _BRANCH_H */
