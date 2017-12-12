@@ -27,8 +27,20 @@ Bank* Bank_Init(int numBranches, int numAccounts, AccountAmount initalAmount,
 
 	Branch_Init(bank, numBranches, numAccounts, initalAmount);
 	Report_Init(bank, reportingAmount, numWorkers);
+
 	bank->lock = malloc(sizeof(pthread_mutex_t));
 	pthread_mutex_init(bank->lock, NULL);
+
+	bank->leftWorkerCheck = malloc(sizeof(pthread_mutex_t));
+	pthread_mutex_init(bank->leftWorkerCheck, NULL);
+
+	bank->workerLocks = malloc(numWorkers * sizeof(sem_t*));
+	for (int i = 0; i < numWorkers; i++) {
+		bank->workerLocks[i] = malloc(sizeof(sem_t));
+		sem_init(bank->workerLocks[i], 0, 0);
+	}
+	bank->leftWorker = bank->allWorkers = numWorkers;
+	
 	return bank;
 }
 
@@ -44,12 +56,20 @@ int Bank_Balance(Bank *bank, AccountAmount *balance)
 	for (unsigned int branch = 0; branch < bank->numberBranches; branch++)
 	{
 		AccountAmount branchBalance;
+		pthread_mutex_lock(bank->branches[branch].lock);
 		int err = Branch_Balance(bank, bank->branches[branch].branchID, &branchBalance);
 		if (err < 0)
 		{
+			for (unsigned int i = 0; i <= branch; i++) {
+				pthread_mutex_unlock(bank->branches[i].lock);
+			}
 			return err;
 		}
 		bankTotal += branchBalance;
+	}
+
+	for (unsigned int branch = 0; branch < bank->numberBranches; branch++) {
+		pthread_mutex_unlock(bank->branches[branch].lock);
 	}
 
 	*balance = bankTotal;

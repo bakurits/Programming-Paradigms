@@ -2,6 +2,7 @@
 #define _BANK_H
 
 #include <pthread.h>
+#include <semaphore.h>
 
 typedef struct Bank
 {
@@ -9,6 +10,10 @@ typedef struct Bank
 	struct Branch* branches;
 	struct Report* report;
 	pthread_mutex_t* lock;
+	pthread_mutex_t* leftWorkerCheck;
+	int leftWorker;
+	int allWorkers;
+	sem_t** workerLocks;
 } Bank;
 
 #include "account.h"

@@ -9,6 +9,7 @@
 #include <inttypes.h>
 
 #include <pthread.h>
+#include <semaphore.h>
 
 #include "bank.h"
 #include "account.h"
@@ -129,6 +130,7 @@ int main(int argc, char* argv[])
 	if (numWorkers > 1)
 	{
 		int err = MultipleWorkers(numWorkers);
+		
 		if (err < 0)
 			exit(-1);
 	}
@@ -297,6 +299,7 @@ static int MultipleWorkers(int numWorkers)
 	struct
 	{
 		pthread_t thread;
+		sem_t* lock;
 		int id;
 	} workers[MAX_WORKERS];
 
@@ -310,6 +313,8 @@ static int MultipleWorkers(int numWorkers)
 	for (int w = 0; w < numWorkers; w++)
 	{
 		workers[w].id = w;
+		workers[w].lock = malloc(sizeof(sem_t));
+		sem_init(workers[w].lock, 0, 0);
 		rc = pthread_create(&workers[w].thread, &attr,
 							Worker, (void *)&(workers[w].id));
 		if (rc)

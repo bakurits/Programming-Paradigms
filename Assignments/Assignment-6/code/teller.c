@@ -122,10 +122,7 @@ int Teller_DoTransfer(Bank* bank, AccountNumber srcAccountNum,
 	/*
    * If we are doing a transfer within the branch, we tell the Account module to
    * not bother updating the branch balance since the net change for the
-   * branch iurn ERROR_INSUFFICIENT_FUNDS;
-	}
-
-	/*
+   * branch return ERROR_INSUFFICIENT_FUNDS;
    * If we are doing a transfer within the branch, we tell the Account module to
    * not bother updating the branch balance since the net change for the
    * branch is 0.
@@ -140,6 +137,8 @@ int Teller_DoTransfer(Bank* bank, AccountNumber srcAccountNum,
 			pthread_mutex_lock(bank->branches[dstBranch].lock);
 			pthread_mutex_lock(bank->branches[srcBranch].lock);
 		}
+	}else{
+		pthread_mutex_lock(bank->branches[srcBranch].lock);
 	}
 
 	Account_Adjust(bank, srcAccount, -amount, updateBranch);
@@ -150,6 +149,8 @@ int Teller_DoTransfer(Bank* bank, AccountNumber srcAccountNum,
 	if (updateBranch) {
 		pthread_mutex_unlock(bank->branches[srcBranch].lock);
 		pthread_mutex_unlock(bank->branches[dstBranch].lock);
+	}else{
+		pthread_mutex_unlock(bank->branches[srcBranch].lock);
 	}
 
 	return ERROR_SUCCESS;

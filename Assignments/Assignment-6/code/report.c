@@ -116,40 +116,57 @@ int Report_Transfer(Bank *bank, int workerNum, AccountNumber accountNum,
  * Perform the nightly report. Is called by every worker for each report period. workerNum is
  * the worker making the call.  Returns -1 on error, 0 otherwise.
  */
-int Report_DoReport(Bank *bank, int workerNum)
+int Report_DoReport(Bank* bank, int workerNum)
 {
-	Report *rpt = bank->report;
+	pthread_mutex_lock(bank->leftWorkerCheck);
+	bank->leftWorker--;
+	if (bank->leftWorker == 0) {
+		Report* rpt = bank->report;
+		assert(rpt);
+		Y;
+		if (rpt->numReports >= MAX_NUM_REPORTS)
+		{
+			for (int i = 0; i < bank->allWorkers; i++) {
+				if (i != workerNum) {
+					sem_post(bank->workerLocks[i]);
+				}
+			}
+			bank->leftWorker = bank->allWorkers;
+			pthread_mutex_unlock(bank->leftWorkerCheck);
+			return -1;
+		}
 
-	assert(rpt);
-	Y;
-
-	if (rpt->numReports >= MAX_NUM_REPORTS)
-	{
-		// We've run out of report storage for the bank
-		return -1;
+		/*
+		* Store the overall bank balance for the report.
+		*/
+		int err = Bank_Balance(bank, &rpt->dailyData[rpt->numReports].balance);
+		Y;
+		int oldNumReports = rpt->numReports;
+		Y;
+		rpt->numReports = oldNumReports + 1;
+		Y;
+		for (int i = 0; i < bank->allWorkers; i++) {
+				if (i != workerNum) {
+					sem_post(bank->workerLocks[i]);
+				}
+			}
+		bank->leftWorker = bank->allWorkers;
+		pthread_mutex_unlock(bank->leftWorkerCheck);
+		return err;
 	}
-
-	/*
-   * Store the overall bank balance for the report.
-   */
-	int err = Bank_Balance(bank, &rpt->dailyData[rpt->numReports].balance);
-	Y;
-	int oldNumReports = rpt->numReports;
-	Y;
-	rpt->numReports = oldNumReports + 1;
-	Y;
-
-	return err;
+	pthread_mutex_unlock(bank->leftWorkerCheck);
+	sem_wait(bank->workerLocks[workerNum]);
+	return 0;
 }
 
 /*
  *
  * Function used by qsort() to record log.
  */
-static int TransferLogSortFunc(const void *p1, const void *p2)
+static int TransferLogSortFunc(const void* p1, const void* p2)
 {
-	const struct TransferLog *l1 = (const struct TransferLog *)p1;
-	const struct TransferLog *l2 = (const struct TransferLog *)p2;
+	const struct TransferLog* l1 = (const struct TransferLog*)p1;
+	const struct TransferLog* l2 = (const struct TransferLog*)p2;
 
 	if (l1->accountNum < l2->accountNum)
 		return -1;
@@ -168,12 +185,12 @@ static int TransferLogSortFunc(const void *p1, const void *p2)
  * Prints mismatches to stderr,
  * Return -1 on mismatch, zero otherwise.
  */
-int Report_Compare(Bank *bank1, Bank *bank2)
+int Report_Compare(Bank* bank1, Bank* bank2)
 {
 	int err = 0;
 
-	Report *rpt1 = bank1->report;
-	Report *rpt2 = bank2->report;
+	Report* rpt1 = bank1->report;
+	Report* rpt2 = bank2->report;
 
 	if (rpt1->numReports != rpt2->numReports)
 	{
