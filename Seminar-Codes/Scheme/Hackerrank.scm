@@ -80,3 +80,22 @@
         (+ 1 (Length (cdr seq)))
     )
 )
+
+/* Update List */
+/* Update the values of a list with their absolute values */
+(define (abs seq)
+    (if (= (length seq) 0) '()
+        (if (< (car seq) 0) (cons (- 0 (car seq)) (abs (cdr seq)))
+            (cons (car seq) (abs (cdr seq)))
+        )
+    )
+)
+
+/* Computing the GCD */
+(define (Gcd n m)
+    (if (= n 0) m
+        (if (> n m) (Gcd m n)
+            (Gcd (remainder m n) n)
+        )
+    )
+)
