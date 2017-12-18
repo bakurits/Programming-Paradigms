@@ -157,3 +157,11 @@
         )
     )
 )
+
+/* Pentagonal Numbers */
+/* https://www.hackerrank.com/challenges/pentagonal-numbers/problem */
+(define (pent n)
+    (if (= n 1) 1
+        (+ (pent (- n 1)) (* 3 n) (- 0 2))
+    )
+)
