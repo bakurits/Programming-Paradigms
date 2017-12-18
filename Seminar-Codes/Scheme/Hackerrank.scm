@@ -99,3 +99,28 @@
         )
     )
 )
+
+/* Pascal's Triangle */
+/* print the first n rows of Pascal's Triangle */
+(define (nextLine seq)
+    (cond ((= (length seq) 1) '(1))
+          ((= (length seq) 2) (append (list (+ (car seq) 1)) (list 1)))
+          (#t (cons (+ (car seq) (cadr seq)) (nextLine (cdr seq))))
+    )
+)
+
+(define (pascalw n)
+    (if (= n 0) '((1))
+        (append (list(cons 1 (nextLine (car (pascalw (- n 1)))))) (pascalw (- n 1)))
+    )
+)
+
+(define (reverse seq)
+    (if (= (length seq) 0) '()
+        (append (reverse (cdr seq)) (list(car seq)))
+    )
+)
+
+(define (pascal n)
+    (reverse (pascalw n))
+)
