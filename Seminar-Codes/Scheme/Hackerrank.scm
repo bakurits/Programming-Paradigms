@@ -124,3 +124,36 @@
 (define (pascal n)
     (reverse (pascalw n))
 )
+
+/* Filter Elements */
+/* Given a list you have to find those integers which are repeated at least K times.
+   In case no such element exists you have to print -1. */
+(define (count x seq)
+    (if (null? seq) 0
+        (if (= (car seq) x) (+ 1 (count x (cdr seq)))
+            (count x (cdr seq))
+        )
+    )
+)
+
+(define (numbers) ('(0 1 2 3 4 5 6 7 8 9)))
+
+(define (countAll seq)
+    (map (lambda (x) (count x seq)) '(0 1 2 3 4 5 6 7 8 9))
+)
+
+(define (filterw seq k i)
+    (if (null? seq) '()
+        (if (< (car seq) k) (filterw (cdr seq) k (+ 1 i))
+            (cons i (filterw (cdr seq) k (+ 1 i)))
+        )
+    )
+)
+
+(define (filter seq k)
+    (let ((curr (filterw (countAll seq) k 0)))
+        (if (null? curr) -1
+            curr
+        )
+    )
+)
