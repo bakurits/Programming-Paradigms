@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 
 import random  # for seed, random
 import sys  # for stdout
@@ -69,7 +69,7 @@ def testStrands(score, plusScores, minusScores, strandAligned1, strandAligned2):
     if testSumScore(plusScores) - testSumScore(minusScores) != score:
         sys.stdout.write("Score mismatch to score strings! TEST FAILED!\n")
         return False
-    for i in range(len(plusScores)):
+    for i in xrange(len(plusScores)):
         if not testValidateEach(strandAligned1[i], strandAligned2[i], testScoreToInt(plusScores[i]),
                                 testScoreToInt(minusScores[i])):
             sys.stdout.write("Invalid scores for position " + str(i) + ":\n")
@@ -134,9 +134,9 @@ def generateRandomDNAStrand(minlength, maxlength):
         "Maximum length passed to generateRandomDNAStrand must be at " \
         "as large as the specified minimum length"
     strand = ""
-    length = random.choice(range(minlength, maxlength + 1))
+    length = random.choice(xrange(minlength, maxlength + 1))
     bases = ['A', 'T', 'G', 'C']
-    for i in range(0, length):
+    for i in xrange(0, length):
         strand += random.choice(bases)
     return strand
 
@@ -148,7 +148,7 @@ def generateRandomDNAStrand(minlength, maxlength):
 def printAlignment(score, out=sys.stdout):
     out.write("Optimal alignment score is " + str(score) + "\n")
 
-
+# This function gets aligned strings
 def get_aligned_strings(first, second, cache):
     fir_ans = ""
     sec_ans = ""
@@ -180,7 +180,8 @@ def get_aligned_strings(first, second, cache):
         sec_ans += " " * (len(fir_ans) - len(sec_ans))
     return fir_ans, sec_ans
 
-
+# This function gets +- scores for
+# Aligned strings of DNA's
 def get_plus_minuses(first, second):
     pl = ""
     mn = ""
@@ -208,11 +209,11 @@ def get_plus_minuses(first, second):
 # quickly.
 def main():
     while True:
-        sys.stdout.write("Generate random DNA strands?\n")
+        sys.stdout.write("Generate random DNA strands? ")
         answer = sys.stdin.readline()
         if answer == "no\n": break
-        strand1 = generateRandomDNAStrand(8, 10)
-        strand2 = generateRandomDNAStrand(8, 10)
+        strand1 = generateRandomDNAStrand(8, 40)
+        strand2 = generateRandomDNAStrand(8, 40)
         sys.stdout.write("Aligning these two strands: " + strand1 + "\n")
         sys.stdout.write("                            " + strand2 + "\n")
         cache = {}
