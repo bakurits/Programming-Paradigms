@@ -22,23 +22,21 @@ typedef struct list_t{
     elem_t val;
 }list_t;
 
-void init(list_t* self);
-void dispose(list_t* self);
+void list_init(list_t* self);
+void list_dispose(list_t* self);
 
-list_t list(elem_t elem);
-
-
-elem_t car(list_t* self);
-list_t cdr(list_t* self);
-
-list_t cons(elem_t first_list, list_t* second_list);
-
-list_t append(list_t* first_list, list_t* second_list);
+list_t list_list(elem_t elem);
 
 
+elem_t list_car(list_t* self);
+list_t list_cdr(list_t* self);
+
+list_t list_cons(elem_t elem, list_t* second_list);
+list_t list_append(list_t* first_list, list_t* second_list);
 
 elem_t copy(elem_t elem);
 
+elem_t list_copy(elem_t elem);
 
 
 #endif //FIRSTPROJ_LIST_H
